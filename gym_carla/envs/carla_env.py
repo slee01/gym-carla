@@ -19,7 +19,7 @@ from gym import spaces
 from gym.utils import seeding
 import carla
 
-from gym_carla.envs.render import BirdeyeRender
+# from gym_carla.envs.render import BirdeyeRender
 from gym_carla.envs.route_planner import RoutePlanner
 from gym_carla.envs.misc import *
 
@@ -72,7 +72,7 @@ class CarlaEnv(gym.Env):
     observation_space_dict = {
       # 'camera': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
       # 'lidar': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
-      'birdeye': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
+      # 'birdeye': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
       'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
       }
     # if self.pixor:
@@ -139,8 +139,8 @@ class CarlaEnv(gym.Env):
     self.reset_step = 0
     self.total_step = 0
     
-    # Initialize the renderer
-    self._init_renderer()
+    # # Initialize the renderer
+    # self._init_renderer()
 
     # # Get pixel grid points
     # if self.pixor:
@@ -252,8 +252,8 @@ class CarlaEnv(gym.Env):
     self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
     self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
 
-    # Set ego information for render
-    self.birdeye_render.set_hero(self.ego, self.ego.id)
+    # # Set ego information for render
+    # self.birdeye_render.set_hero(self.ego, self.ego.id)
 
     return self._get_obs()
   
@@ -332,22 +332,22 @@ class CarlaEnv(gym.Env):
       bp.set_attribute('color', color)
     return bp
 
-  def _init_renderer(self):
-    """Initialize the birdeye view renderer.
-    """
-    pygame.init()
-    self.display = pygame.display.set_mode(
-    (self.display_size * 3, self.display_size),
-    pygame.HWSURFACE | pygame.DOUBLEBUF)
+  # def _init_renderer(self):
+  #   """Initialize the birdeye view renderer.
+  #   """
+  #   pygame.init()
+  #   self.display = pygame.display.set_mode(
+  #   (self.display_size * 3, self.display_size),
+  #   pygame.HWSURFACE | pygame.DOUBLEBUF)
 
-    pixels_per_meter = self.display_size / self.obs_range
-    pixels_ahead_vehicle = (self.obs_range/2 - self.d_behind) * pixels_per_meter
-    birdeye_params = {
-      'screen_size': [self.display_size, self.display_size],
-      'pixels_per_meter': pixels_per_meter,
-      'pixels_ahead_vehicle': pixels_ahead_vehicle
-    }
-    self.birdeye_render = BirdeyeRender(self.world, birdeye_params)
+  #   pixels_per_meter = self.display_size / self.obs_range
+  #   pixels_ahead_vehicle = (self.obs_range/2 - self.d_behind) * pixels_per_meter
+  #   birdeye_params = {
+  #     'screen_size': [self.display_size, self.display_size],
+  #     'pixels_per_meter': pixels_per_meter,
+  #     'pixels_ahead_vehicle': pixels_ahead_vehicle
+  #   }
+  #   self.birdeye_render = BirdeyeRender(self.world, birdeye_params)
 
   def _set_synchronous_mode(self, synchronous = True):
     """Set whether to use the synchronous mode.
@@ -459,19 +459,19 @@ class CarlaEnv(gym.Env):
 
   def _get_obs(self):
     """Get the observations."""
-    ## Birdeye rendering
-    self.birdeye_render.vehicle_polygons = self.vehicle_polygons
-    self.birdeye_render.walker_polygons = self.walker_polygons
-    self.birdeye_render.waypoints = self.waypoints
+    # ## Birdeye rendering
+    # self.birdeye_render.vehicle_polygons = self.vehicle_polygons
+    # self.birdeye_render.walker_polygons = self.walker_polygons
+    # self.birdeye_render.waypoints = self.waypoints
 
-    # birdeye view with roadmap and actors
-    birdeye_render_types = ['roadmap', 'actors']
-    if self.display_route:
-      birdeye_render_types.append('waypoints')
-    self.birdeye_render.render(self.display, birdeye_render_types)
-    birdeye = pygame.surfarray.array3d(self.display)
-    birdeye = birdeye[0:self.display_size, :, :]
-    birdeye = display_to_rgb(birdeye, self.obs_size)
+    # # birdeye view with roadmap and actors
+    # birdeye_render_types = ['roadmap', 'actors']
+    # if self.display_route:
+    #   birdeye_render_types.append('waypoints')
+    # self.birdeye_render.render(self.display, birdeye_render_types)
+    # birdeye = pygame.surfarray.array3d(self.display)
+    # birdeye = birdeye[0:self.display_size, :, :]
+    # birdeye = display_to_rgb(birdeye, self.obs_size)
 
     # Roadmap
     # if self.pixor:
@@ -488,9 +488,9 @@ class CarlaEnv(gym.Env):
     #       if abs(birdeye[i, j, 0] - 255)<20 and abs(birdeye[i, j, 1] - 0)<20 and abs(birdeye[i, j, 0] - 255)<20:
     #         roadmap[i, j, :] = birdeye[i, j, :]
 
-    # Display birdeye image
-    birdeye_surface = rgb_to_display_surface(birdeye, self.display_size)
-    self.display.blit(birdeye_surface, (0, 0))
+    # # Display birdeye image
+    # birdeye_surface = rgb_to_display_surface(birdeye, self.display_size)
+    # self.display.blit(birdeye_surface, (0, 0))
 
     # ## Lidar image generation
     # point_cloud = []
@@ -584,7 +584,7 @@ class CarlaEnv(gym.Env):
     obs = {
       # 'camera':camera.astype(np.uint8),
       # 'lidar':lidar.astype(np.uint8),
-      'birdeye':birdeye.astype(np.uint8),
+      # 'birdeye':birdeye.astype(np.uint8),
       'state': state,
     }
 
