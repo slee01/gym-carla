@@ -46,9 +46,10 @@ def main():
   while True:
     action = [2.0, 0.0]
     obs,r,done,info = env.step(action)
-
+    print("next_obs: ", obs, " reward: ", r, " done: ", done)
     if done:
       obs = env.reset()
+      print("----------------------------------------------------")
 
 
 if __name__ == '__main__':
