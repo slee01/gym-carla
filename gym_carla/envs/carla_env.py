@@ -9,7 +9,7 @@ from __future__ import division
 
 import copy
 import numpy as np
-import pygame
+# import pygame
 import random
 import time
 from skimage.transform import resize
@@ -54,15 +54,15 @@ class CarlaEnv(gym.Env):
     self.discrete_act = [params['discrete_acc'], params['discrete_steer']] # acc, steer
     self.n_acc = len(self.discrete_act[0])
     self.n_steer = len(self.discrete_act[1])
+    
     if self.discrete:
       self.action_space = spaces.Discrete(self.n_acc*self.n_steer)
     else:
       self.action_space = spaces.Box(np.array([params['continuous_accel_range'][0], 
       params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
       params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
-    observation_space_dict = {
-      'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
-      }
+    
+    observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     self.observation_space = spaces.Dict(observation_space_dict)
 
     # Connect to carla server and get world object
@@ -320,7 +320,7 @@ class CarlaEnv(gym.Env):
     """Get the observations."""
 
     # Display on pygame
-    pygame.display.flip()
+    # pygame.display.flip()
 
     # State observation
     ego_trans = self.ego.get_transform()
