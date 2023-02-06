@@ -70,8 +70,8 @@ class CarlaEnv(gym.Env):
       params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
       params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
     observation_space_dict = {
-      'camera': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
-      'lidar': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
+      # 'camera': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
+      # 'lidar': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
       'birdeye': spaces.Box(low=0, high=255, shape=(self.obs_size, self.obs_size, 3), dtype=np.uint8),
       'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
       }
@@ -120,16 +120,16 @@ class CarlaEnv(gym.Env):
     # self.lidar_bp.set_attribute('channels', '32')
     # self.lidar_bp.set_attribute('range', '5000')
 
-    # Camera sensor
-    self.camera_img = np.zeros((self.obs_size, self.obs_size, 3), dtype=np.uint8)
-    self.camera_trans = carla.Transform(carla.Location(x=0.8, z=1.7))
-    self.camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
-    # Modify the attributes of the blueprint to set image resolution and field of view.
-    self.camera_bp.set_attribute('image_size_x', str(self.obs_size))
-    self.camera_bp.set_attribute('image_size_y', str(self.obs_size))
-    self.camera_bp.set_attribute('fov', '110')
-    # Set the time in seconds between sensor captures
-    self.camera_bp.set_attribute('sensor_tick', '0.02')
+    # # Camera sensor
+    # self.camera_img = np.zeros((self.obs_size, self.obs_size, 3), dtype=np.uint8)
+    # self.camera_trans = carla.Transform(carla.Location(x=0.8, z=1.7))
+    # self.camera_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
+    # # Modify the attributes of the blueprint to set image resolution and field of view.
+    # self.camera_bp.set_attribute('image_size_x', str(self.obs_size))
+    # self.camera_bp.set_attribute('image_size_y', str(self.obs_size))
+    # self.camera_bp.set_attribute('fov', '110')
+    # # Set the time in seconds between sensor captures
+    # self.camera_bp.set_attribute('sensor_tick', '0.02')
 
     # Set fixed simulation step for synchronous mode
     self.settings = self.world.get_settings()
@@ -152,11 +152,12 @@ class CarlaEnv(gym.Env):
     # Clear sensor objects  
     self.collision_sensor = None
     # self.lidar_sensor = None
-    self.camera_sensor = None
+    # self.camera_sensor = None
 
     # Delete sensors, vehicles and walkers
     # self._clear_all_actors(['sensor.other.collision', 'sensor.lidar.ray_cast', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
-    self._clear_all_actors(['sensor.other.collision', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
+    # self._clear_all_actors(['sensor.other.collision', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
+    self._clear_all_actors(['sensor.other.collision', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
 
     # Disable sync mode
     self._set_synchronous_mode(False)
@@ -230,15 +231,15 @@ class CarlaEnv(gym.Env):
     # def get_lidar_data(data):
     #   self.lidar_data = data
 
-    # Add camera sensor
-    self.camera_sensor = self.world.spawn_actor(self.camera_bp, self.camera_trans, attach_to=self.ego)
-    self.camera_sensor.listen(lambda data: get_camera_img(data))
-    def get_camera_img(data):
-      array = np.frombuffer(data.raw_data, dtype = np.dtype("uint8"))
-      array = np.reshape(array, (data.height, data.width, 4))
-      array = array[:, :, :3]
-      array = array[:, :, ::-1]
-      self.camera_img = array
+    # # Add camera sensor
+    # self.camera_sensor = self.world.spawn_actor(self.camera_bp, self.camera_trans, attach_to=self.ego)
+    # self.camera_sensor.listen(lambda data: get_camera_img(data))
+    # def get_camera_img(data):
+    #   array = np.frombuffer(data.raw_data, dtype = np.dtype("uint8"))
+    #   array = np.reshape(array, (data.height, data.width, 4))
+    #   array = array[:, :, :3]
+    #   array = array[:, :, ::-1]
+    #   self.camera_img = array
 
     # Update timesteps
     self.time_step=0
@@ -524,10 +525,10 @@ class CarlaEnv(gym.Env):
     # lidar_surface = rgb_to_display_surface(lidar, self.display_size)
     # self.display.blit(lidar_surface, (self.display_size, 0))
 
-    ## Display camera image
-    camera = resize(self.camera_img, (self.obs_size, self.obs_size)) * 255
-    camera_surface = rgb_to_display_surface(camera, self.display_size)
-    self.display.blit(camera_surface, (self.display_size * 2, 0))
+    # ## Display camera image
+    # camera = resize(self.camera_img, (self.obs_size, self.obs_size)) * 255
+    # camera_surface = rgb_to_display_surface(camera, self.display_size)
+    # self.display.blit(camera_surface, (self.display_size * 2, 0))
 
     # Display on pygame
     pygame.display.flip()
@@ -581,7 +582,7 @@ class CarlaEnv(gym.Env):
     #   pixor_state = [ego_x, ego_y, np.cos(ego_yaw), np.sin(ego_yaw), speed]
 
     obs = {
-      'camera':camera.astype(np.uint8),
+      # 'camera':camera.astype(np.uint8),
       # 'lidar':lidar.astype(np.uint8),
       'birdeye':birdeye.astype(np.uint8),
       'state': state,
