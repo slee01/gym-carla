@@ -38,9 +38,9 @@ class CarlaEnv(gym.Env):
     self.max_time_episode = params['max_time_episode']
     self.max_waypt = params['max_waypt']
     self.obs_range = params['obs_range']
-    self.lidar_bin = params['lidar_bin']
+    # self.lidar_bin = params['lidar_bin']
     self.d_behind = params['d_behind']
-    self.obs_size = int(self.obs_range/self.lidar_bin)
+    # self.obs_size = int(self.obs_range/self.lidar_bin)
     self.out_lane_thres = params['out_lane_thres']
     self.desired_speed = params['desired_speed']
     self.max_ego_spawn_times = params['max_ego_spawn_times']
@@ -112,13 +112,13 @@ class CarlaEnv(gym.Env):
     self.collision_hist_l = 1 # collision history length
     self.collision_bp = self.world.get_blueprint_library().find('sensor.other.collision')
 
-    # Lidar sensor
-    self.lidar_data = None
-    self.lidar_height = 2.1
-    self.lidar_trans = carla.Transform(carla.Location(x=0.0, z=self.lidar_height))
-    self.lidar_bp = self.world.get_blueprint_library().find('sensor.lidar.ray_cast')
-    self.lidar_bp.set_attribute('channels', '32')
-    self.lidar_bp.set_attribute('range', '5000')
+    # # Lidar sensor
+    # self.lidar_data = None
+    # self.lidar_height = 2.1
+    # self.lidar_trans = carla.Transform(carla.Location(x=0.0, z=self.lidar_height))
+    # self.lidar_bp = self.world.get_blueprint_library().find('sensor.lidar.ray_cast')
+    # self.lidar_bp.set_attribute('channels', '32')
+    # self.lidar_bp.set_attribute('range', '5000')
 
     # Camera sensor
     self.camera_img = np.zeros((self.obs_size, self.obs_size, 3), dtype=np.uint8)
@@ -151,11 +151,12 @@ class CarlaEnv(gym.Env):
   def reset(self):
     # Clear sensor objects  
     self.collision_sensor = None
-    self.lidar_sensor = None
+    # self.lidar_sensor = None
     self.camera_sensor = None
 
     # Delete sensors, vehicles and walkers
-    self._clear_all_actors(['sensor.other.collision', 'sensor.lidar.ray_cast', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
+    # self._clear_all_actors(['sensor.other.collision', 'sensor.lidar.ray_cast', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
+    self._clear_all_actors(['sensor.other.collision', 'sensor.camera.rgb', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
 
     # Disable sync mode
     self._set_synchronous_mode(False)
@@ -223,11 +224,11 @@ class CarlaEnv(gym.Env):
         self.collision_hist.pop(0)
     self.collision_hist = []
 
-    # Add lidar sensor
-    self.lidar_sensor = self.world.spawn_actor(self.lidar_bp, self.lidar_trans, attach_to=self.ego)
-    self.lidar_sensor.listen(lambda data: get_lidar_data(data))
-    def get_lidar_data(data):
-      self.lidar_data = data
+    # # Add lidar sensor
+    # self.lidar_sensor = self.world.spawn_actor(self.lidar_bp, self.lidar_trans, attach_to=self.ego)
+    # self.lidar_sensor.listen(lambda data: get_lidar_data(data))
+    # def get_lidar_data(data):
+    #   self.lidar_data = data
 
     # Add camera sensor
     self.camera_sensor = self.world.spawn_actor(self.camera_bp, self.camera_trans, attach_to=self.ego)
@@ -490,38 +491,38 @@ class CarlaEnv(gym.Env):
     birdeye_surface = rgb_to_display_surface(birdeye, self.display_size)
     self.display.blit(birdeye_surface, (0, 0))
 
-    ## Lidar image generation
-    point_cloud = []
-    # Get point cloud data
-    for location in self.lidar_data:
-      point_cloud.append([location.x, location.y, -location.z])
-    point_cloud = np.array(point_cloud)
-    # Separate the 3D space to bins for point cloud, x and y is set according to self.lidar_bin,
-    # and z is set to be two bins.
-    y_bins = np.arange(-(self.obs_range - self.d_behind), self.d_behind+self.lidar_bin, self.lidar_bin)
-    x_bins = np.arange(-self.obs_range/2, self.obs_range/2+self.lidar_bin, self.lidar_bin)
-    z_bins = [-self.lidar_height-1, -self.lidar_height+0.25, 1]
-    # Get lidar image according to the bins
-    lidar, _ = np.histogramdd(point_cloud, bins=(x_bins, y_bins, z_bins))
-    lidar[:,:,0] = np.array(lidar[:,:,0]>0, dtype=np.uint8)
-    lidar[:,:,1] = np.array(lidar[:,:,1]>0, dtype=np.uint8)
-    # Add the waypoints to lidar image
-    if self.display_route:
-      wayptimg = (birdeye[:,:,0] <= 10) * (birdeye[:,:,1] <= 10) * (birdeye[:,:,2] >= 240)
-    else:
-      wayptimg = birdeye[:,:,0] < 0  # Equal to a zero matrix
-    wayptimg = np.expand_dims(wayptimg, axis=2)
-    wayptimg = np.fliplr(np.rot90(wayptimg, 3))
+    # ## Lidar image generation
+    # point_cloud = []
+    # # Get point cloud data
+    # for location in self.lidar_data:
+    #   point_cloud.append([location.x, location.y, -location.z])
+    # point_cloud = np.array(point_cloud)
+    # # Separate the 3D space to bins for point cloud, x and y is set according to self.lidar_bin,
+    # # and z is set to be two bins.
+    # y_bins = np.arange(-(self.obs_range - self.d_behind), self.d_behind+self.lidar_bin, self.lidar_bin)
+    # x_bins = np.arange(-self.obs_range/2, self.obs_range/2+self.lidar_bin, self.lidar_bin)
+    # z_bins = [-self.lidar_height-1, -self.lidar_height+0.25, 1]
+    # # Get lidar image according to the bins
+    # lidar, _ = np.histogramdd(point_cloud, bins=(x_bins, y_bins, z_bins))
+    # lidar[:,:,0] = np.array(lidar[:,:,0]>0, dtype=np.uint8)
+    # lidar[:,:,1] = np.array(lidar[:,:,1]>0, dtype=np.uint8)
+    # # Add the waypoints to lidar image
+    # if self.display_route:
+    #   wayptimg = (birdeye[:,:,0] <= 10) * (birdeye[:,:,1] <= 10) * (birdeye[:,:,2] >= 240)
+    # else:
+    #   wayptimg = birdeye[:,:,0] < 0  # Equal to a zero matrix
+    # wayptimg = np.expand_dims(wayptimg, axis=2)
+    # wayptimg = np.fliplr(np.rot90(wayptimg, 3))
 
-    # Get the final lidar image
-    lidar = np.concatenate((lidar, wayptimg), axis=2)
-    lidar = np.flip(lidar, axis=1)
-    lidar = np.rot90(lidar, 1)
-    lidar = lidar * 255
+    # # Get the final lidar image
+    # lidar = np.concatenate((lidar, wayptimg), axis=2)
+    # lidar = np.flip(lidar, axis=1)
+    # lidar = np.rot90(lidar, 1)
+    # lidar = lidar * 255
 
-    # Display lidar image
-    lidar_surface = rgb_to_display_surface(lidar, self.display_size)
-    self.display.blit(lidar_surface, (self.display_size, 0))
+    # # Display lidar image
+    # lidar_surface = rgb_to_display_surface(lidar, self.display_size)
+    # self.display.blit(lidar_surface, (self.display_size, 0))
 
     ## Display camera image
     camera = resize(self.camera_img, (self.obs_size, self.obs_size)) * 255
@@ -581,7 +582,7 @@ class CarlaEnv(gym.Env):
 
     obs = {
       'camera':camera.astype(np.uint8),
-      'lidar':lidar.astype(np.uint8),
+      # 'lidar':lidar.astype(np.uint8),
       'birdeye':birdeye.astype(np.uint8),
       'state': state,
     }
