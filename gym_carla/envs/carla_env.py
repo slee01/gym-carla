@@ -32,7 +32,6 @@ class CarlaEnv(gym.Env):
     self.display_size = params['display_size']  # rendering screen size
     self.max_past_step = params['max_past_step']
     self.number_of_vehicles = params['number_of_vehicles']
-    # self.number_of_walkers = params['number_of_walkers']
     self.dt = params['dt']
     self.task_mode = params['task_mode']
     self.max_time_episode = params['max_time_episode']
@@ -78,13 +77,6 @@ class CarlaEnv(gym.Env):
 
     # Get spawn points
     self.vehicle_spawn_points = list(self.world.get_map().get_spawn_points())
-    # self.walker_spawn_points = []
-    # for i in range(self.number_of_walkers):
-    #   spawn_point = carla.Transform()
-    #   loc = self.world.get_random_location_from_navigation()
-    #   if (loc != None):
-    #     spawn_point.location = loc
-    #     self.walker_spawn_points.append(spawn_point)
 
     # Create the ego vehicle blueprint
     self.ego_bp = self._create_vehicle_bluepprint(params['ego_vehicle_filter'], color='49,8,8')
@@ -107,7 +99,6 @@ class CarlaEnv(gym.Env):
     self.collision_sensor = None
 
     # Delete sensors, vehicles and walkers
-    # self._clear_all_actors(['sensor.other.collision', 'vehicle.*', 'controller.ai.walker', 'walker.*'])
     self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
 
     # Disable sync mode
@@ -126,26 +117,10 @@ class CarlaEnv(gym.Env):
       if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
         count -= 1
 
-    # # Spawn pedestrians
-    # random.shuffle(self.walker_spawn_points)
-    # count = self.number_of_walkers
-    # if count > 0:
-    #   for spawn_point in self.walker_spawn_points:
-    #     if self._try_spawn_random_walker_at(spawn_point):
-    #       count -= 1
-    #     if count <= 0:
-    #       break
-    # while count > 0:
-    #   if self._try_spawn_random_walker_at(random.choice(self.walker_spawn_points)):
-    #     count -= 1
-
     # Get actors polygon list
     self.vehicle_polygons = []
     vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
     self.vehicle_polygons.append(vehicle_poly_dict)
-    # self.walker_polygons = []
-    # walker_poly_dict = self._get_actor_polygons('walker.*')
-    # self.walker_polygons.append(walker_poly_dict)
 
     # Spawn the ego vehicle
     ego_spawn_times = 0
@@ -217,10 +192,6 @@ class CarlaEnv(gym.Env):
     self.vehicle_polygons.append(vehicle_poly_dict)
     while len(self.vehicle_polygons) > self.max_past_step:
       self.vehicle_polygons.pop(0)
-    # walker_poly_dict = self._get_actor_polygons('walker.*')
-    # self.walker_polygons.append(walker_poly_dict)
-    # while len(self.walker_polygons) > self.max_past_step:
-    #   self.walker_polygons.pop(0)
 
     # route planner
     self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
@@ -286,33 +257,6 @@ class CarlaEnv(gym.Env):
       vehicle.set_autopilot()
       return True
     return False
-
-  # def _try_spawn_random_walker_at(self, transform):
-  #   """Try to spawn a walker at specific transform with random bluprint.
-
-  #   Args:
-  #     transform: the carla transform object.
-
-  #   Returns:
-  #     Bool indicating whether the spawn is successful.
-  #   """
-  #   walker_bp = random.choice(self.world.get_blueprint_library().filter('walker.*'))
-  #   # set as not invencible
-  #   if walker_bp.has_attribute('is_invincible'):
-  #     walker_bp.set_attribute('is_invincible', 'false')
-  #   walker_actor = self.world.try_spawn_actor(walker_bp, transform)
-
-  #   if walker_actor is not None:
-  #     walker_controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
-  #     walker_controller_actor = self.world.spawn_actor(walker_controller_bp, carla.Transform(), walker_actor)
-  #     # start walker
-  #     walker_controller_actor.start()
-  #     # set walk to random point
-  #     walker_controller_actor.go_to_location(self.world.get_random_location_from_navigation())
-  #     # random max speed
-  #     walker_controller_actor.set_max_speed(1 + random.random())    # max speed between 1 and 2 (default is 1.4 m/s)
-  #     return True
-  #   return False
 
   def _try_spawn_ego_vehicle_at(self, transform):
     """Try to spawn the ego vehicle at specific transform.
@@ -465,6 +409,4 @@ class CarlaEnv(gym.Env):
     for actor_filter in actor_filters:
       for actor in self.world.get_actors().filter(actor_filter):
         if actor.is_alive:
-          # if actor.type_id == 'controller.ai.walker':
-            # actor.stop()
           actor.destroy()
