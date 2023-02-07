@@ -387,7 +387,7 @@ class CarlaEnv(gym.Env):
       return True
 
     # If reach maximum timestep
-    if self.time_step>self.max_time_episode:
+    if self.time_step>=self.max_time_episode:
       return True
 
     # If at destination
