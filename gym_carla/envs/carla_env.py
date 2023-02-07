@@ -62,8 +62,9 @@ class CarlaEnv(gym.Env):
       params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
       params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
     
-    observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
-    self.observation_space = spaces.Dict(observation_space_dict)
+    # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
+    # self.observation_space = spaces.Dict(observation_space_dict)
+    self.observation_space = spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
 
     # Connect to carla server and get world object
     print('connecting to Carla server...')
@@ -334,11 +335,9 @@ class CarlaEnv(gym.Env):
     speed = np.sqrt(v.x**2 + v.y**2)
     state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
 
-    obs = {
-      'state': state,
-    }
-
-    return obs
+    # obs = {'state': state,}
+    # return obs
+    return state
 
   def _get_reward(self):
     """Calculate the step reward."""
