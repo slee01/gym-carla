@@ -24,7 +24,7 @@ from gym_carla.envs.route_planner import RoutePlanner
 from gym_carla.envs.misc import *
 
 
-class CarlaEnv(gym.Env):
+class RoundAboutEnv(gym.Env):
   """An OpenAI gym wrapper for CARLA simulator."""
 
   def __init__(self, params):
@@ -80,7 +80,8 @@ class CarlaEnv(gym.Env):
     self.vehicle_spawn_points = list(self.world.get_map().get_spawn_points())
 
     # Create the ego vehicle blueprint
-    self.ego_bp = self._create_vehicle_bluepprint(params['ego_vehicle_filter'], color='49,8,8')
+    # self.ego_bp = self._create_vehicle_bluepprint(params['ego_vehicle_filter'], color='49,8,8')
+    self.ego_bp = self._create_vehicle_bluepprint(params['ego_vehicle_filter'], color='51,255,255')
 
     # Collision sensor
     self.collision_hist = [] # The collision history
@@ -98,13 +99,12 @@ class CarlaEnv(gym.Env):
   def reset(self):
     # Clear sensor objects  
     self.collision_sensor = None
-
+    
     # Delete sensors, vehicles and walkers
     self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
 
     # Disable sync mode
     self._set_synchronous_mode(False)
-
     # Spawn surrounding vehicles
     random.shuffle(self.vehicle_spawn_points)
     count = self.number_of_vehicles
@@ -140,7 +140,6 @@ class CarlaEnv(gym.Env):
       else:
         ego_spawn_times += 1
         time.sleep(0.1)
-
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego)
     self.collision_sensor.listen(lambda event: get_collision_hist(event))
@@ -162,7 +161,6 @@ class CarlaEnv(gym.Env):
 
     self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
     self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-
     return self._get_obs()
   
   def step(self, action):
@@ -234,6 +232,7 @@ class CarlaEnv(gym.Env):
       if not color:
         color = random.choice(bp.get_attribute('color').recommended_values)
       bp.set_attribute('color', color)
+      # bp.set_attribute('color', '255,255,255')
     return bp
 
   def _set_synchronous_mode(self, synchronous = True):
@@ -385,27 +384,23 @@ class CarlaEnv(gym.Env):
     # If collides
     if len(self.collision_hist)>0: 
       return True
-
     # If reach maximum timestep
     if self.time_step>=self.max_time_episode:
       return True
-
     # If at destination
     if self.dests is not None: # If at destination
       for dest in self.dests:
         if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
           return True
-
     # If out of lane
     dis, _ = get_lane_dis(self.waypoints, ego_x, ego_y)
     if abs(dis) > self.out_lane_thres:
       return True
-
     return False
 
   def _clear_all_actors(self, actor_filters):
     """Clear specific actors."""
-    for actor_filter in actor_filters:
+    for actor_filter in actor_filters:      
       for actor in self.world.get_actors().filter(actor_filter):
         if actor.is_alive:
           actor.destroy()
