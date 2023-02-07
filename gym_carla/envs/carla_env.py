@@ -87,6 +87,7 @@ class RoundAboutEnv(gym.Env):
     self.collision_hist = [] # The collision history
     self.collision_hist_l = 1 # collision history length
     self.collision_bp = self.world.get_blueprint_library().find('sensor.other.collision')
+    self.collision_sensor = None
 
     # Set fixed simulation step for synchronous mode
     self.settings = self.world.get_settings()
@@ -98,10 +99,14 @@ class RoundAboutEnv(gym.Env):
     
   def reset(self):
     # Clear sensor objects  
+    if self.collision_sensor is not None:
+      self.collision_sensor.stop()
+      self.collision_sensor.destroy()
     self.collision_sensor = None
     
     # Delete sensors, vehicles and walkers
-    self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
+    # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
+    self._clear_all_actors(['vehicle.*'])
 
     # Disable sync mode
     self._set_synchronous_mode(False)
@@ -140,6 +145,7 @@ class RoundAboutEnv(gym.Env):
       else:
         ego_spawn_times += 1
         time.sleep(0.1)
+        
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego)
     self.collision_sensor.listen(lambda event: get_collision_hist(event))
@@ -149,6 +155,7 @@ class RoundAboutEnv(gym.Env):
       self.collision_hist.append(intensity)
       if len(self.collision_hist)>self.collision_hist_l:
         self.collision_hist.pop(0)
+        
     self.collision_hist = []
 
     # Update timesteps
