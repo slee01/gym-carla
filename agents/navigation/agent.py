@@ -42,6 +42,24 @@ class Agent(object):
         self._map = self._vehicle.get_world().get_map()
         self._last_traffic_light = None
 
+    @property
+    def id(self):
+        return self._vehicle.id
+
+    @property
+    def bounding_box(self):
+        return self._vehicle.bounding_box
+
+    @property
+    def is_alive(self):
+        return self._vehicle.is_alive
+
+    def get_transform(self):
+        return self._vehicle.get_transform()
+
+    def destroy(self):
+        self._vehicle.destroy()
+
     def run_step(self, debug=False):
         """
         Execute one step of navigation.
