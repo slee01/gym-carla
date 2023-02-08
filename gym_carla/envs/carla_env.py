@@ -106,7 +106,7 @@ class RoundAboutEnv(gym.Env):
       self.collision_sensor.destroy()
     self.collision_sensor = None
 
-    self._clear_all_vehicles():
+    self._clear_all_vehicles()
     self.vehicles = []
     
     # Delete sensors, vehicles and walkers
@@ -127,6 +127,8 @@ class RoundAboutEnv(gym.Env):
     while count > 0:
       if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
         count -= 1
+
+    # self._set_vehicle_paths()
 
     # Get actors polygon list
     self.vehicle_polygons = []
@@ -358,6 +360,15 @@ class RoundAboutEnv(gym.Env):
       poly=np.matmul(R,poly_local).transpose()+np.repeat([[x,y]],4,axis=0)
       vehicle_poly_dict[vehicle.id]=poly
     return vehicle_poly_dict
+
+  def _set_vehicle_paths(self):
+    if self.dests is not None: # If at destination
+      for vehicle in self.vehicles:
+        vehicle.set_destination(random.choice(self.dests))
+        # print("vehicle.id: ", vehicle._vehicle.id)
+        # print("vehicle._local_planner._waypoints_queue: ", vehicle._local_planner._waypoints_queue)
+    else:
+      raise NotImplementedError
 
   def _get_obs(self):
     """Get the observations."""
