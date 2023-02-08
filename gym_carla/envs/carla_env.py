@@ -78,6 +78,7 @@ class RoundAboutEnv(gym.Env):
 
     # Get spawn points
     self.vehicle_spawn_points = list(self.world.get_map().get_spawn_points())
+    self.vehicles = []
 
     # Create the ego vehicle blueprint
     # self.ego_bp = self._create_vehicle_bluepprint(params['ego_vehicle_filter'], color='49,8,8')
@@ -103,10 +104,14 @@ class RoundAboutEnv(gym.Env):
       self.collision_sensor.stop()
       self.collision_sensor.destroy()
     self.collision_sensor = None
+
+    self._clear_all_vehicles():
+    self.vehicles = []
     
     # Delete sensors, vehicles and walkers
     # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
-    self._clear_all_actors(['vehicle.*'])
+    # self._clear_all_actors(['vehicle.*'])
+
 
     # Disable sync mode
     self._set_synchronous_mode(False)
@@ -411,3 +416,10 @@ class RoundAboutEnv(gym.Env):
       for actor in self.world.get_actors().filter(actor_filter):
         if actor.is_alive:
           actor.destroy()
+
+  def _clear_all_vehicles(self):
+    """Clear all vehicles."""
+    if self.vehicles is not None:
+      for vehicle in self.vehicles:
+        if vehicle.is_alive:
+            vehicle.destroy()
