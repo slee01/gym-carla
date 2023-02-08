@@ -113,7 +113,6 @@ class RoundAboutEnv(gym.Env):
     # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
     # self._clear_all_actors(['vehicle.*'])
 
-
     # Disable sync mode
     self._set_synchronous_mode(False)
     # Spawn surrounding vehicles
@@ -131,7 +130,8 @@ class RoundAboutEnv(gym.Env):
 
     # Get actors polygon list
     self.vehicle_polygons = []
-    vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
+    # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
+    vehicle_poly_dict = self._get_vehicle_polygons()
     self.vehicle_polygons.append(vehicle_poly_dict)
 
     # Spawn the ego vehicle
@@ -200,7 +200,8 @@ class RoundAboutEnv(gym.Env):
     self.world.tick()
 
     # Append actors polygon list
-    vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
+    # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
+    vehicle_poly_dict = self._get_vehicle_polygons()
     self.vehicle_polygons.append(vehicle_poly_dict)
     while len(self.vehicle_polygons) > self.max_past_step:
       self.vehicle_polygons.pop(0)
@@ -330,6 +331,33 @@ class RoundAboutEnv(gym.Env):
       poly=np.matmul(R,poly_local).transpose()+np.repeat([[x,y]],4,axis=0)
       actor_poly_dict[actor.id]=poly
     return actor_poly_dict
+
+  def _get_vehicle_polygons(self):
+    """Get the bounding box polygon of vehicles.
+
+    Args:
+    Returns:
+      vehicle_poly_dict: a dictionary containing the bounding boxes of vehicles.
+    """
+    vehicle_poly_dict={}
+    for vehicle in self.vehicles:
+      # Get x, y and yaw of the vehicle
+      trans=vehicle.get_transform()
+      x=trans.location.x
+      y=trans.location.y
+      yaw=trans.rotation.yaw/180*np.pi
+      # Get length and width
+      bb=vehicle.bounding_box
+      l=bb.extent.x
+      w=bb.extent.y
+      # Get bounding box polygon in the vehicle's local coordinate
+      poly_local=np.array([[l,w],[l,-w],[-l,-w],[-l,w]]).transpose()
+      # Get rotation matrix to transform to global coordinate
+      R=np.array([[np.cos(yaw),-np.sin(yaw)],[np.sin(yaw),np.cos(yaw)]])
+      # Get global bounding box polygon
+      poly=np.matmul(R,poly_local).transpose()+np.repeat([[x,y]],4,axis=0)
+      vehicle_poly_dict[vehicle.id]=poly
+    return vehicle_poly_dict
 
   def _get_obs(self):
     """Get the observations."""
