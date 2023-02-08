@@ -22,6 +22,7 @@ import carla
 # from gym_carla.envs.render import BirdeyeRender
 from gym_carla.envs.route_planner import RoutePlanner
 from gym_carla.envs.misc import *
+from agents.navigation.basic_agent import BasicAgent
 
 
 class RoundAboutEnv(gym.Env):
@@ -266,7 +267,9 @@ class RoundAboutEnv(gym.Env):
     blueprint.set_attribute('role_name', 'autopilot')
     vehicle = self.world.try_spawn_actor(blueprint, transform)
     if vehicle is not None:
-      vehicle.set_autopilot()
+      # vehicle.set_autopilot()
+      vehicle = BasicAgent(vehicle)
+      self.vehicles.append(vehicle)
       return True
     return False
 
