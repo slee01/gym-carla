@@ -280,4 +280,20 @@ class BasicAgent(Agent):
             control = self.add_emergency_stop(control)
 
         return control
-        
+
+    def done(self):
+        """Check whether the agent has reached its destination."""
+        return self.local_planner.done()
+
+    def ignore_traffic_lights(self, active=True):
+        """(De)activates the checks for traffic lights"""
+        self._ignore_traffic_lights = active
+
+    def ignore_stop_signs(self, active=True):
+        """(De)activates the checks for stop signs"""
+        self._ignore_stop_signs = active
+
+    def ignore_vehicles(self, active=True):
+        """(De)activates the checks for stop signs"""
+        self._ignore_vehicles = active
+
