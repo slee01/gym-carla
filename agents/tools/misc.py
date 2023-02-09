@@ -165,7 +165,7 @@ def compute_distance(location_1, location_2):
     z = location_2.z - location_1.z
     norm = np.linalg.norm([x, y, z]) + np.finfo(float).eps
     return norm
-    
+
 def vector(location_1, location_2):
     """
     Returns the unit vector from location_1 to location_2
@@ -177,3 +177,10 @@ def vector(location_1, location_2):
     norm = np.linalg.norm([x, y, z]) + np.finfo(float).eps
 
     return [x / norm, y / norm, z / norm]
+
+def positive(num):
+    """
+    Return the given number if positive, else 0
+        :param num: value to check
+    """
+    return num if num > 0.0 else 0.0
