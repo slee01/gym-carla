@@ -273,13 +273,12 @@ class SafeAgent(Agent):
 
     #     return control
 
-    def run_step(self):
+    def run_step(self, debug=False):
         """Execute one step of navigation."""
         hazard_detected = False
 
         # Retrieve all relevant actors
         vehicle_list = self._world.get_actors().filter("*vehicle*")
-
         vehicle_speed = get_speed(self._vehicle) / 3.6
 
         # Check for possible vehicle obstacles
@@ -294,7 +293,39 @@ class SafeAgent(Agent):
         if affected_by_tlight:
             hazard_detected = True
 
-        control = self.local_planner.run_step()
+        # Car following behaviors
+        ego_vehicle_loc = self._vehicle.get_location()
+        ego_vehicle_wp = self._map.get_waypoint(ego_vehicle_loc)
+        vehicle_state, vehicle, distance = self.collision_and_car_avoid_manager(ego_vehicle_wp)
+        
+        if vehicle_state:
+            # Distance is computed from the center of the two cars,
+            # we use bounding boxes to calculate the actual distance
+            distance = distance - max(
+                vehicle.bounding_box.extent.y, vehicle.bounding_box.extent.x) - max(
+                    self._vehicle.bounding_box.extent.y, self._vehicle.bounding_box.extent.x)
+
+            # Emergency brake if the car is very close.
+            if distance < self._behavior.braking_distance:
+                return self.emergency_stop()
+            else:
+                control = self.car_following_control(vehicle, distance)
+
+        # 3: Intersection behavior
+        # elif self._incoming_waypoint.is_junction and (self._incoming_direction in [RoadOption.LEFT, RoadOption.RIGHT]):
+        #     target_speed = min([
+        #         self._behavior.max_speed,
+        #         self._speed_limit - 5])
+        #     self._local_planner.set_speed(target_speed)
+        #     control = self._local_planner.run_step(debug=debug)
+
+        # 4: Normal behavior
+        else:
+            target_speed = min([self._behavior.max_speed, self._speed_limit - self._behavior.speed_lim_dist])
+            self.local_planner.set_speed(target_speed)
+            control = self.local_planner.run_step(debug=debug)        
+        
+        # control = self.local_planner.run_step()
         if hazard_detected:
             control = self.add_emergency_stop(control)
 
