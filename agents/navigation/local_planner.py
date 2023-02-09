@@ -10,7 +10,7 @@
 
 from enum import Enum
 from collections import deque
-import random
+import random, itertools
 
 import carla
 from agents.navigation.controller import VehiclePIDController
@@ -201,7 +201,7 @@ class LocalPlanner(object):
             self._vehicle,args_lateral=self._args_lateral_dict,
             args_longitudinal=self._args_longitudinal_dict,
             offset=self._offset,
-            max_throtle=self._max_throt,
+            max_throttle=self._max_throt,
             max_brake=self._max_brake,
             max_steering=self._max_steer)
 
@@ -475,6 +475,11 @@ class LocalPlanner(object):
     def get_plan(self):
         """Returns the current plan of the local planner"""
         return self._waypoints_queue
+
+    def get_waypoints(self, length=50):
+        """Returns the current plan of the local planner"""
+        waypoints = list(itertools.islice(self._waypoints_queue, 0, 50))
+        return waypoints
 
     def done(self):
         """
