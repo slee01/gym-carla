@@ -112,6 +112,7 @@ class LocalPlanner(object):
         self._base_min_distance = 3.0
         self._distance_ratio = 0.5
         self._follow_speed_limits = False
+        self._speed_limit = 20.0  # Km/h
 
         # Overload parameters
         if opt_dict:
@@ -223,6 +224,18 @@ class LocalPlanner(object):
         :return:
         """
         self._target_speed = speed
+
+    def set_speed_limit(self, speed_limit):
+        """
+        Request new speed limit.
+
+        :param speed: new speed limit in Km/h
+        :return:
+        """
+        self._speed_limit = speed_limit
+
+    def get_speed_limit(self):
+        return self._speed_limit
 
     def follow_speed_limits(self, value=True):
         """
@@ -351,8 +364,8 @@ class LocalPlanner(object):
         :param debug: boolean flag to activate waypoints debugging
         :return:
         """
-        # if self._follow_speed_limits:
-            # self._target_speed = self._vehicle.get_speed_limit()
+        if self._follow_speed_limits:
+            self._target_speed = self.get_speed_limit()
 
         # not enough waypoints in the horizon? => add more!
         # if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
