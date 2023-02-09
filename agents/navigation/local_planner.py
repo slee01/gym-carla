@@ -209,7 +209,7 @@ class LocalPlanner(object):
 
         # # fill waypoint trajectory queue
         # self._compute_next_waypoints(k=200)
-        
+
         # compute initial waypoints
         self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
         self.target_waypoint, self.target_road_option = (self._current_waypoint, RoadOption.LANEFOLLOW)
@@ -253,12 +253,40 @@ class LocalPlanner(object):
 
             self._waypoints_queue.append((next_waypoint, road_option))
 
-    def set_global_plan(self, current_plan):
-        self._waypoints_queue.clear()
+    # def set_global_plan(self, current_plan):
+    def set_global_plan(self, current_plan, stop_waypoint_creation=True, clean_queue=True):
+        """
+        Adds a new plan to the local planner. A plan must be a list of [carla.Waypoint, RoadOption] pairs
+        The 'clean_queue` parameter erases the previous plan if True, otherwise, it adds it to the old one
+        The 'stop_waypoint_creation' flag stops the automatic creation of random waypoints
+
+        :param current_plan: list of (carla.Waypoint, RoadOption)
+        :param stop_waypoint_creation: bool
+        :param clean_queue: bool
+        :return:
+        """
+
+        # self._waypoints_queue.clear()
+        # for elem in current_plan:
+        #     self._waypoints_queue.append(elem)
+        # self.target_road_option = RoadOption.LANEFOLLOW
+        # self._global_plan = True
+
+        if clean_queue:
+            self._waypoints_queue.clear()
+
+        # Remake the waypoints queue if the new plan has a higher length than the queue
+        new_plan_length = len(current_plan) + len(self._waypoints_queue)
+        if new_plan_length > self._waypoints_queue.maxlen:
+            new_waypoint_queue = deque(maxlen=new_plan_length)
+            for wp in self._waypoints_queue:
+                new_waypoint_queue.append(wp)
+            self._waypoints_queue = new_waypoint_queue
+
         for elem in current_plan:
             self._waypoints_queue.append(elem)
-        self.target_road_option = RoadOption.LANEFOLLOW
-        self._global_plan = True
+
+        self._stop_waypoint_creation = stop_waypoint_creation            
 
 #   def _get_waypoints(self):
 #     """
