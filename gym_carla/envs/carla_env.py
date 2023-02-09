@@ -128,7 +128,7 @@ class RoundAboutEnv(gym.Env):
       if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
         count -= 1
 
-    self._set_vehicle_paths()
+    self._set_random_vehicle_paths()
 
     # Get actors polygon list
     self.vehicle_polygons = []
@@ -154,6 +154,8 @@ class RoundAboutEnv(gym.Env):
         ego_spawn_times += 1
         time.sleep(0.1)
         
+    self._set_ego_vehicle_path()
+
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
     self.collision_sensor.listen(lambda event: get_collision_hist(event))
@@ -178,8 +180,8 @@ class RoundAboutEnv(gym.Env):
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
     ############################################################################
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
-    #
-    #
+    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    self.vehicle_front =  self.ego.detect_hazard()
     ############################################################################
     return self._get_obs()
   
@@ -366,7 +368,7 @@ class RoundAboutEnv(gym.Env):
       vehicle_poly_dict[vehicle.id]=poly
     return vehicle_poly_dict
 
-  def _set_vehicle_paths(self):
+  def _set_random_vehicle_paths(self):
     if self.dests is not None: # If at destination
       for vehicle in self.vehicles:
         # print("self.dests: ", self.dests)  # [[x,y,z], [x,y,z], [x,y,z], ..., [x,y,z]]
@@ -376,6 +378,13 @@ class RoundAboutEnv(gym.Env):
         # print("vehicle.id: ", vehicle._vehicle.id)
         # print("vehicle.local_planner._waypoints_queue: ", vehicle.local_planner._waypoints_queue)
         # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
+    else:
+      raise NotImplementedError
+
+  def _set_ego_vehicle_path(self):
+    if self.ego is not None and self.dests is not None: 
+      _dest = random.choice(self.dests)
+      self.ego.set_destination(carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
 
