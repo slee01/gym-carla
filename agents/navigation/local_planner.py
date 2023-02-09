@@ -68,13 +68,13 @@ class LocalPlanner(object):
         self._world = self._vehicle.get_world()
         # self._map = self._vehicle.get_world().get_map()
         if map_inst:
-            if instance(map_inst, carla.Map):
+            if isinstance(map_inst, carla.Map):
                 self._map = map_inst
             else:
                 print("Warning: Ignoring the given map as it is not a 'carla.Map'")
-                self._map = self._vehicle.get_world().get_map()
+                self._map = self._world.get_map()
         else:
-            self._map = self._vehicle.get_world().get_map()
+            self._map = self._world.get_map()
 
         # self._dt = None
         # self._target_speed = None
@@ -142,7 +142,8 @@ class LocalPlanner(object):
                 self._follow_speed_limits = opt_dict['follow_speed_limits']
 
         # initializing controller
-        self._init_controller(opt_dict)
+        # self._init_controller(opt_dict)
+        self._init_controller()
 
     def __del__(self):
         if self._vehicle:
@@ -152,9 +153,10 @@ class LocalPlanner(object):
 
     def reset_vehicle(self):
         self._vehicle = None
-        print("Resetting ego-vehicle!")
+        # print("Resetting ego-vehicle!")
 
-    def _init_controller(self, opt_dict):
+    # def _init_controller(self, opt_dict):
+    def _init_controller(self):
         """
         Controller initialization.
 
@@ -212,17 +214,22 @@ class LocalPlanner(object):
         # self._compute_next_waypoints(k=200)
 
         # compute initial waypoints
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        self.target_waypoint, self.target_road_option = (self._current_waypoint, RoadOption.LANEFOLLOW)
+        # self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        # self.target_waypoint, self.target_road_option = (self._current_waypoint, RoadOption.LANEFOLLOW)
+        current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        self.target_waypoint, self.target_road_option = (current_waypoint, RoadOption.LANEFOLLOW)
         self._waypoints_queue.append((self.target_waypoint, self.target_road_option))
 
     def set_speed(self, speed):
         """
-        Request new target speed.
+        Change the target speed.
 
         :param speed: new target speed in Km/h
         :return:
         """
+        if self._follow_speed_limits:
+            print("WARNING: The max speed is currently set to follow the speed limits. "
+                  "Use 'follow_speed_limits' to deactivate this")
         self._target_speed = speed
 
     def set_speed_limit(self, speed_limit):
@@ -310,7 +317,7 @@ class LocalPlanner(object):
         for elem in current_plan:
             self._waypoints_queue.append(elem)
 
-        self._stop_waypoint_creation = stop_waypoint_creation            
+        self._stop_waypoint_creation = stop_waypoint_creation
 
 #   def _get_waypoints(self):
 #     """
@@ -362,7 +369,7 @@ class LocalPlanner(object):
         follow the waypoints trajectory.
 
         :param debug: boolean flag to activate waypoints debugging
-        :return:
+        :return: control to be applied
         """
         if self._follow_speed_limits:
             self._target_speed = self.get_speed_limit()
@@ -370,7 +377,7 @@ class LocalPlanner(object):
         # not enough waypoints in the horizon? => add more!
         # if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
             # self._compute_next_waypoints(k=100)
-        if not self._stop_waypoint_creation and len(self._waypoints_queue) < self._min_waypoint_queue_length:            
+        if not self._stop_waypoint_creation and len(self._waypoints_queue) < self._min_waypoint_queue_length:
             self._compute_next_waypoints(k=self._min_waypoint_queue_length)
 
         # if len(self._waypoints_queue) == 0:
@@ -414,6 +421,7 @@ class LocalPlanner(object):
         veh_location = self._vehicle.get_location()
         vehicle_speed = get_speed(self._vehicle) / 3.6
         self._min_distance = self._base_min_distance + self._distance_ratio * vehicle_speed
+
         num_waypoint_removed = 0
         for waypoint, _ in self._waypoints_queue:
 
@@ -498,7 +506,8 @@ def _retrieve_options(list_waypoints, current_waypoint):
     return options
 
 
-def _compute_connection(current_waypoint, next_waypoint):
+# def _compute_connection(current_waypoint, next_waypoint):
+def _compute_connection(current_waypoint, next_waypoint, threshold=35):
     """
     Compute the type of topological connection between an active waypoint (current_waypoint) and a target waypoint
     (next_waypoint).
@@ -517,7 +526,8 @@ def _compute_connection(current_waypoint, next_waypoint):
     c = c % 360.0
 
     diff_angle = (n - c) % 180.0
-    if diff_angle < 1.0:
+    # if diff_angle < 1.0:
+    if diff_angle < threshold or diff_angle > (180 - threshold):
         return RoadOption.STRAIGHT
     elif diff_angle > 90.0:
         return RoadOption.LEFT
