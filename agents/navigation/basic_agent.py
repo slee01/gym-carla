@@ -137,7 +137,7 @@ class BasicAgent(Agent):
 
     def get_local_planner(self):
         """Get method for protected member local planner"""
-        return self._local_planner
+        return self.local_planner
 
     def get_global_planner(self):
         """Get method for protected member local planner"""
@@ -155,7 +155,7 @@ class BasicAgent(Agent):
             :param start_location (carla.Location): starting location of the route
         """
         if not start_location:
-            start_location = self._local_planner.target_waypoint.transform.location
+            start_location = self.local_planner.target_waypoint.transform.location
             clean_queue = True
         else:
             start_location = self._vehicle.get_location()
@@ -186,23 +186,28 @@ class BasicAgent(Agent):
 
     def trace_route(self, start_waypoint, end_waypoint):
         """
-        This method sets up a global router and returns the optimal route
-        from start_waypoint to end_waypoint
+        Calculates the shortest route between a starting and ending waypoint.
+
+            :param start_waypoint (carla.Waypoint): initial waypoint
+            :param end_waypoint (carla.Waypoint): final waypoint
         """
 
-        # Setting up global router
-        if self._grp is None:
-            dao = GlobalRoutePlannerDAO(self._vehicle.get_world().get_map(), self._hop_resolution)
-            grp = GlobalRoutePlanner(dao)
-            grp.setup()
-            self._grp = grp
+        # # Setting up global router
+        # if self._grp is None:
+        #     dao = GlobalRoutePlannerDAO(self._vehicle.get_world().get_map(), self._hop_resolution)
+        #     grp = GlobalRoutePlanner(dao)
+        #     grp.setup()
+        #     self._grp = grp
 
-        # Obtain route plan
-        route = self._grp.trace_route(
-            start_waypoint.transform.location,
-            end_waypoint.transform.location)
+        # # Obtain route plan
+        # route = self._grp.trace_route(
+        #     start_waypoint.transform.location,
+        #     end_waypoint.transform.location)
+        # return route
 
-        return route
+        start_location = start_waypoint.transform.location
+        end_location = end_waypoint.transform.location
+        return self._global_planner.trace_route(start_location, end_location)
 
     def run_step(self, debug=False):
         """
