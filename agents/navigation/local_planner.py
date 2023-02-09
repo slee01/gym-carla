@@ -433,6 +433,33 @@ class LocalPlanner(object):
 
         return control
 
+    def get_incoming_waypoint_and_direction(self, steps=3):
+        """
+        Returns direction and waypoint at a distance ahead defined by the user.
+
+            :param steps: number of steps to get the incoming waypoint.
+        """
+        if len(self._waypoints_queue) > steps:
+            return self._waypoints_queue[steps]
+
+        else:
+            try:
+                wpt, direction = self._waypoints_queue[-1]
+                return wpt, direction
+            except IndexError as i:
+                return None, RoadOption.VOID
+
+    def get_plan(self):
+        """Returns the current plan of the local planner"""
+        return self._waypoints_queue
+
+    def done(self):
+        """
+        Returns whether or not the planner has finished
+
+        :return: boolean
+        """
+        return len(self._waypoints_queue) == 0
 
 def _retrieve_options(list_waypoints, current_waypoint):
     """
