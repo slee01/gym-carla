@@ -128,7 +128,7 @@ class RoundAboutEnv(gym.Env):
       if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
         count -= 1
 
-    # self._set_vehicle_paths()
+    self._set_vehicle_paths()
 
     # Get actors polygon list
     self.vehicle_polygons = []
@@ -155,7 +155,7 @@ class RoundAboutEnv(gym.Env):
         time.sleep(0.1)
         
     # Add collision sensor
-    self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego)
+    self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
     self.collision_sensor.listen(lambda event: get_collision_hist(event))
     def get_collision_hist(event):
       impulse = event.normal_impulse
@@ -300,7 +300,7 @@ class RoundAboutEnv(gym.Env):
       vehicle = self.world.try_spawn_actor(self.ego_bp, transform)
 
     if vehicle is not None:
-      self.ego=vehicle
+      self.ego=BasicAgent(vehicle)
       return True
       
     return False
@@ -367,6 +367,7 @@ class RoundAboutEnv(gym.Env):
         vehicle.set_destination(random.choice(self.dests))
         # print("vehicle.id: ", vehicle._vehicle.id)
         # print("vehicle._local_planner._waypoints_queue: ", vehicle._local_planner._waypoints_queue)
+        # print("vehicle._local_planner._waypoint_buffer: ", vehicle._local_planner._waypoint_buffer)
     else:
       raise NotImplementedError
 
