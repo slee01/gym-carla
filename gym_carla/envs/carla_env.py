@@ -174,8 +174,13 @@ class RoundAboutEnv(gym.Env):
     self.settings.synchronous_mode = True
     self.world.apply_settings(self.settings)
 
-    self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
-    self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
+    # self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
+    # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
+    ############################################################################
+    # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
+    #
+    #
+    ############################################################################
     return self._get_obs()
   
   def step(self, action):
