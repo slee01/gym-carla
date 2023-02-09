@@ -67,9 +67,9 @@ def get_trafficlight_trigger_location(traffic_light):
 
 def is_within_distance(target_transform, reference_transform, max_distance, angle_interval=None):
     """
-    Check if a location is both within a certain distance from a reference object.
+    Check if a location is within a certain distance from a reference object.
     By using 'angle_interval', the angle between the location and reference transform
-    will also be tkaen into account, being 0 a location in front and 180, one behind.
+    will also be taeen into account, being 0 a location in front and 180, one behind.
     :param target_transform: location of the target object
     :param reference_transform: location of the reference object
     :param max_distance: maximum allowed distance

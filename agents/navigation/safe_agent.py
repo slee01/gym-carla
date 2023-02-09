@@ -26,9 +26,7 @@ from agents.navigation.local_planner import LocalPlanner, RoadOption
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 # from agents.navigation.global_route_planner import GlobalRoutePlanner
 # from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
-from agents.tools.misc import (get_speed, is_within_distance,
-                               get_trafficlight_trigger_location,
-                               compute_distance, positive)
+from agents.tools.misc import (get_speed, is_within_distance, get_trafficlight_trigger_location, compute_distance, positive)
 
 
 class SafeAgent(Agent):
@@ -309,7 +307,7 @@ class SafeAgent(Agent):
         # Car following behaviors
         ego_vehicle_loc = self._vehicle.get_location()
         ego_vehicle_wp = self._map.get_waypoint(ego_vehicle_loc)
-        vehicle_state, vehicle, distance = self.collision_and_car_avoid_manager(ego_vehicle_wp)
+        vehicle_state, vehicle, distance = self.get_hazard_obstacle(ego_vehicle_wp)
         
         if vehicle_state:
             # Distance is computed from the center of the two cars,
@@ -334,7 +332,8 @@ class SafeAgent(Agent):
 
         # 4: Normal behavior
         else:
-            target_speed = min([self._behavior.max_speed, self._speed_limit - self._behavior.speed_lim_dist])
+            speed_limit = self.get_speed_limit()
+            target_speed = min([self._behavior.max_speed, speed_limit - self._behavior.speed_lim_dist])
             self.local_planner.set_speed(target_speed)
             control = self.local_planner.run_step(debug=debug)        
         
@@ -645,7 +644,6 @@ class SafeAgent(Agent):
 
             # Simplified approach, using only the plan waypoints (similar to TM)
             else:
-
                 if target_wpt.road_id != ego_wpt.road_id or target_wpt.lane_id != ego_wpt.lane_id  + lane_offset:
                     next_wpt = self.local_planner.get_incoming_waypoint_and_direction(steps=3)[0]
                     if not next_wpt:
@@ -710,3 +708,44 @@ class SafeAgent(Agent):
             control = self._local_planner.run_step(debug=debug)
 
         return control
+
+    def get_hazard_obstacle(self, waypoint):
+        """
+        This module is in charge of warning in case of a collision.
+
+            :param location: current location of the agent
+            :param waypoint: current waypoint of the agent
+            :return vehicle_state: True if there is a vehicle nearby, False if not
+            :return vehicle: nearby vehicle
+            :return distance: distance to nearby vehicle
+        """
+
+        vehicle_list = self._world.get_actors().filter("*vehicle*")
+        def dist(v): return v.get_location().distance(waypoint.transform.location)
+        vehicle_list = [v for v in vehicle_list if dist(v) < 45 and v.id != self._vehicle.id]
+
+        speed_limit = self.get_speed_limit()
+        direction = self.local_planner.target_road_option
+        if direction is None:
+            direction = RoadOption.LANEFOLLOW
+
+        if direction == RoadOption.CHANGELANELEFT:
+            vehicle_state, vehicle, distance = self._vehicle_obstacle_detected(
+                vehicle_list, max(
+                    self._behavior.min_proximity_threshold, speed_limit / 2), up_angle_th=180, lane_offset=-1)
+        elif direction == RoadOption.CHANGELANERIGHT:
+            vehicle_state, vehicle, distance = self._vehicle_obstacle_detected(
+                vehicle_list, max(
+                    self._behavior.min_proximity_threshold, speed_limit / 2), up_angle_th=180, lane_offset=1)
+        else:
+            vehicle_state, vehicle, distance = self._vehicle_obstacle_detected(
+                vehicle_list, max(
+                    self._behavior.min_proximity_threshold, speed_limit / 3), up_angle_th=30)
+
+            # # Check for tailgating
+            # if not vehicle_state and direction == RoadOption.LANEFOLLOW \
+            #         and not waypoint.is_junction and self._speed > 10 \
+            #         and self._behavior.tailgate_counter == 0:
+            #     self._tailgating(waypoint, vehicle_list)
+
+        return vehicle_state, vehicle, distance
