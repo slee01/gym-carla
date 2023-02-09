@@ -282,6 +282,28 @@ class BasicAgent(Agent):
 
         return control
 
+    def detect_hazard(self):
+        """Detect hazardness of ego vehicle."""
+        hazard_detected = False
+
+        # Retrieve all relevant actors
+        vehicle_list = self._world.get_actors().filter("*vehicle*")
+        vehicle_speed = get_speed(self._vehicle) / 3.6
+
+        # Check for possible vehicle obstacles
+        max_vehicle_distance = self._base_vehicle_threshold + self._speed_ratio * vehicle_speed
+        affected_by_vehicle, _, _ = self._vehicle_obstacle_detected(vehicle_list, max_vehicle_distance)
+        if affected_by_vehicle:
+            hazard_detected = True
+
+        # Check if the vehicle is affected by a red traffic light
+        max_tlight_distance = self._base_tlight_threshold + self._speed_ratio * vehicle_speed
+        affected_by_tlight, _ = self._affected_by_traffic_light(self._lights_list, max_tlight_distance)
+        if affected_by_tlight:
+            hazard_detected = True
+
+        return hazard_detected
+
     def done(self):
         """Check whether the agent has reached its destination."""
         return self.local_planner.done()
