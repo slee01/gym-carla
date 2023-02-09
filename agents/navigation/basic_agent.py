@@ -15,16 +15,20 @@ It can also make use of the global route planner to follow a specified route.
 
 import carla
 import math
+import numpy as np
+
 from shapely.geometry import Polygon
 
 from agents.navigation.agent import Agent, AgentState
+from agents.navigation.behavior_types import Cautious, Aggressive, Normal
+
 from agents.navigation.local_planner import LocalPlanner, RoadOption
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 # from agents.navigation.global_route_planner import GlobalRoutePlanner
 # from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from agents.tools.misc import (get_speed, is_within_distance,
                                get_trafficlight_trigger_location,
-                               compute_distance)
+                               compute_distance, positive)
 
 
 class BasicAgent(Agent):
@@ -36,7 +40,7 @@ class BasicAgent(Agent):
     """
 
     # def __init__(self, vehicle, target_speed=20):
-    def __init__(self, vehicle, target_speed=20, opt_dict={}, map_inst=None, grp_inst=None):
+    def __init__(self, vehicle, behavior='normal', target_speed=20, opt_dict={}, map_inst=None, grp_inst=None):
         """
 
         :param vehicle: actor to apply to local planner logic onto
@@ -56,6 +60,17 @@ class BasicAgent(Agent):
         self._speed_ratio = 1
         self._max_brake = 0.5
         self._offset = 0
+
+        self._behavior = None
+        # Parameters for agent behavior
+        if behavior == 'cautious':
+            self._behavior = Cautious()
+
+        elif behavior == 'normal':
+            self._behavior = Normal()
+
+        elif behavior == 'aggressive':
+            self._behavior = Aggressive()        
 
         # Change parameters according to the dictionary
         opt_dict['target_speed'] = target_speed
@@ -138,6 +153,9 @@ class BasicAgent(Agent):
             :param value (bool): whether or not to activate this behavior
         """
         self.local_planner.follow_speed_limits(value)
+
+    def get_speed_limit(self):
+        return self.local_planner._speed_limit
 
     def get_local_planner(self):
         """Get method for protected member local planner"""
@@ -569,10 +587,11 @@ class BasicAgent(Agent):
             target_wpt = self._map.get_waypoint(target_transform.location, lane_type=carla.LaneType.Any)
 
             # General approach for junctions and vehicles invading other lanes due to the offset
-            if (use_bbs or target_wpt.is_junction) and route_polygon:
+            # if (use_bbs or target_wpt.is_junction) and route_polygon:
+            if False:
 
                 target_bb = target_vehicle.bounding_box
-                target_vertices = target_bb.get_world_vertices(target_vehicle.get_transform())
+                target_vertices = target_bb.get_world_vertices(target_vehicle.get_transform())  # get_world_vertices is not exist in 0.9.6 CARLA
                 target_list = [[v.x, v.y, v.z] for v in target_vertices]
                 target_polygon = Polygon(target_list)
 
@@ -601,3 +620,48 @@ class BasicAgent(Agent):
                     return (True, target_vehicle, compute_distance(target_transform.location, ego_transform.location))
 
         return (False, None, -1)
+
+    def car_following_control(self, front_vehicle, distance, debug=False):
+        """
+        Module in charge of car-following behaviors when there's
+        someone in front of us.
+
+            :param front_vehicle: car to follow
+            :param distance: distance from vehicle
+            :param debug: boolean for debugging
+            :return control: carla.VehicleControl
+        """
+
+        front_speed = get_speed(front_vehicle)
+        ego_speed = get_speed(self._vehicle)
+        _ego_speed_limit = self.get_speed_limit()
+        delta_v = max(1, (ego_speed - front_speed) / 3.6)
+        ttc = distance / delta_v if delta_v != 0 else distance / np.nextafter(0., 1.)
+
+        # Under safety time distance, slow down.
+        if self._behavior.safety_time > ttc > 0.0:
+            target_speed = min([
+                positive(front_speed - self._behavior.speed_decrease),
+                self._behavior.max_speed,
+                _ego_speed_limit - self._behavior.speed_lim_dist])
+            self._local_planner.set_speed(target_speed)
+            control = self._local_planner.run_step(debug=debug)
+
+        # Actual safety distance area, try to follow the speed of the vehicle in front.
+        elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:
+            target_speed = min([
+                max(self._min_speed, front_speed),
+                self._behavior.max_speed,
+                _ego_speed_limit - self._behavior.speed_lim_dist])
+            self._local_planner.set_speed(target_speed)
+            control = self._local_planner.run_step(debug=debug)
+
+        # Normal behavior.
+        else:
+            target_speed = min([
+                self._behavior.max_speed,
+                _ego_speed_limit - self._behavior.speed_lim_dist])
+            self._local_planner.set_speed(target_speed)
+            control = self._local_planner.run_step(debug=debug)
+
+        return control
