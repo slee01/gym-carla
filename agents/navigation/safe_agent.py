@@ -126,18 +126,31 @@ class SafeAgent(Agent):
         self._lights_list = self._world.get_actors().filter("*traffic_light*")
         self._lights_map = {}  # Dictionary mapping a traffic light to a wp corrspoing to its trigger volume location
 
-    def add_emergency_stop(self, control):
+    # def add_emergency_stop(self, control):
+    #     """
+    #     Overwrites the throttle a brake values of a control to perform an emergency stop.
+    #     The steering is kept the same to avoid going out of the lane when stopping during turns
+
+    #         :param speed (carl.VehicleControl): control to be modified
+    #     """
+    #     control.throttle = 0.0
+    #     control.brake = self._max_brake
+    #     control.hand_brake = False
+    #     return control
+
+    def emergency_stop(self):
         """
         Overwrites the throttle a brake values of a control to perform an emergency stop.
         The steering is kept the same to avoid going out of the lane when stopping during turns
 
             :param speed (carl.VehicleControl): control to be modified
         """
+        control = carla.VehicleControl()
         control.throttle = 0.0
         control.brake = self._max_brake
         control.hand_brake = False
         return control
-
+    
     def set_target_speed(self, speed):
         """
         Changes the target speed of the agent
@@ -327,7 +340,8 @@ class SafeAgent(Agent):
         
         # control = self.local_planner.run_step()
         if hazard_detected:
-            control = self.add_emergency_stop(control)
+            # control = self.add_emergency_stop(control)
+            control = self.emergency_stop()
 
         return control
 
