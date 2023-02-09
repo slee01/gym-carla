@@ -57,8 +57,26 @@ class Agent(object):
     def get_transform(self):
         return self._vehicle.get_transform()
 
+    def get_location(self):
+        return self._vehicle.get_location()
+
+    def get_velocity(self):
+        return self._vehicle.get_velocity()
+
+    def get_control(self):
+        return self._vehicle.get_control()
+
     def destroy(self):
         self._vehicle.destroy()
+
+    def get_world(self):
+        return self._vehicle.get_world()
+
+    def get_map(self):
+        return self._vehicle.get_map()
+
+    def apply_control(self, act):
+        self._vehicle.apply_control(act)
 
     def run_step(self, debug=False):
         """
