@@ -37,7 +37,7 @@ class BasicAgent(Agent):
             'K_D': 0.02,
             'K_I': 0,
             'dt': 1.0/20.0}
-        self._local_planner = LocalPlanner(
+        self.local_planner = LocalPlanner(
             self._vehicle, opt_dict={'target_speed' : target_speed,
             'lateral_control_dict':args_lateral_dict})
         self._hop_resolution = 2.0
@@ -59,7 +59,7 @@ class BasicAgent(Agent):
         route_trace = self._trace_route(start_waypoint, end_waypoint)
         assert route_trace
 
-        self._local_planner.set_global_plan(route_trace)
+        self.local_planner.set_global_plan(route_trace)
 
     def _trace_route(self, start_waypoint, end_waypoint):
         """
@@ -119,6 +119,6 @@ class BasicAgent(Agent):
         else:
             self._state = AgentState.NAVIGATING
             # standard local planner behavior
-            control = self._local_planner.run_step(debug=debug)
+            control = self.local_planner.run_step(debug=debug)
 
         return control

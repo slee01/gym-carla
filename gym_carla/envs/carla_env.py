@@ -366,8 +366,8 @@ class RoundAboutEnv(gym.Env):
       for vehicle in self.vehicles:
         vehicle.set_destination(random.choice(self.dests))
         # print("vehicle.id: ", vehicle._vehicle.id)
-        # print("vehicle._local_planner._waypoints_queue: ", vehicle._local_planner._waypoints_queue)
-        # print("vehicle._local_planner._waypoint_buffer: ", vehicle._local_planner._waypoint_buffer)
+        # print("vehicle.local_planner._waypoints_queue: ", vehicle.local_planner._waypoints_queue)
+        # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
     else:
       raise NotImplementedError
 
