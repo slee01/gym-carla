@@ -154,6 +154,7 @@ class PIDLateralController():
         self._K_P = K_P
         self._K_D = K_D
         self._K_I = K_I
+        self._offset = offset
         self._dt = dt
         self._e_buffer = deque(maxlen=10)
 

@@ -105,13 +105,17 @@ class LocalPlanner(object):
         self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
         args_lateral_dict = {
             'K_P': 1.95,
-            'K_D': 0.01,
-            'K_I': 1.4,
+            # 'K_D': 0.01,
+            'K_D': 0.2,
+            # 'K_I': 1.4,
+            'K_I': 0.05,
             'dt': self._dt}
         args_longitudinal_dict = {
             'K_P': 1.0,
+            # 'K_D': 0,
             'K_D': 0,
-            'K_I': 1,
+            # 'K_I': 1,
+            'K_I': 0.05,
             'dt': self._dt}
 
         # parameters overload
@@ -186,6 +190,50 @@ class LocalPlanner(object):
             self._waypoints_queue.append(elem)
         self._target_road_option = RoadOption.LANEFOLLOW
         self._global_plan = True
+
+#   def _get_waypoints(self):
+#     """
+#     Get waypoints composed of (x,y,z) sequence from current vehicle position to 
+
+#     :param debug: boolean flag to activate waypoints debugging
+#     :return:
+#     """
+
+#     # not enough waypoints in the horizon? => add more!
+#     if len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
+#       self._compute_next_waypoints(k=100)
+
+#     #   Buffering the waypoints
+#     while len(self._waypoint_buffer)<self._buffer_size:
+#       if self._waypoints_queue:
+#         self._waypoint_buffer.append(
+#           self._waypoints_queue.popleft())
+#       else:
+#         break
+
+#     waypoints=[]
+
+#     for i, (waypoint, _) in enumerate(self._waypoint_buffer):
+#       waypoints.append([waypoint.transform.location.x, waypoint.transform.location.y, waypoint.transform.rotation.yaw])
+
+#     # current vehicle waypoint
+#     self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+#     # target waypoint
+#     self._target_waypoint, self._target_road_option = self._waypoint_buffer[0]
+
+#     # purge the queue of obsolete waypoints
+#     vehicle_transform = self._vehicle.get_transform()
+#     max_index = -1
+
+#     for i, (waypoint, _) in enumerate(self._waypoint_buffer):
+#       if distance_vehicle(
+#           waypoint, vehicle_transform) < self._min_distance:
+#         max_index = i
+#     if max_index >= 0:
+#       for i in range(max_index - 1):
+#         self._waypoint_buffer.popleft()
+
+#     return waypoints    
 
     def run_step(self, debug=True):
         """
