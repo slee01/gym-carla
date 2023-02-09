@@ -248,7 +248,9 @@ class LocalPlanner(object):
             last_waypoint = self._waypoints_queue[-1][0]
             next_waypoints = list(last_waypoint.next(self._sampling_radius))
 
-            if len(next_waypoints) == 1:
+            if len(next_waypoints) == 0:
+                break
+            elif len(next_waypoints) == 1:
                 # only one option available ==> lanefollowing
                 next_waypoint = next_waypoints[0]
                 road_option = RoadOption.LANEFOLLOW
