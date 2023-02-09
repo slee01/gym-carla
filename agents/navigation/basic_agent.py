@@ -119,22 +119,72 @@ class BasicAgent(Agent):
         control.hand_brake = False
         return control
 
-    def set_destination(self, location):
+    def set_target_speed(self, speed):
         """
-        This method creates a list of waypoints from agent's position to destination location
-        based on the route returned by the global router
+        Changes the target speed of the agent
+            :param speed (float): target speed in Km/h
         """
+        self._target_speed = speed
+        self.local_planner.set_speed(speed)
 
-        start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        end_waypoint = self._map.get_waypoint(
-            carla.Location(location[0], location[1], location[2]))
+    def follow_speed_limits(self, value=True):
+        """
+        If active, the agent will dynamically change the target speed according to the speed limits
 
-        route_trace = self._trace_route(start_waypoint, end_waypoint)
-        assert route_trace
+            :param value (bool): whether or not to activate this behavior
+        """
+        self.local_planner.follow_speed_limits(value)
 
-        self.local_planner.set_global_plan(route_trace)
+    def get_local_planner(self):
+        """Get method for protected member local planner"""
+        return self._local_planner
 
-    def _trace_route(self, start_waypoint, end_waypoint):
+    def get_global_planner(self):
+        """Get method for protected member local planner"""
+        return self._global_planner
+
+    # def set_destination(self, location):
+    def set_destination(self, end_location, start_location=None):
+        """
+        This method creates a list of waypoints between a starting and ending location,
+        based on the route returned by the global router, and adds it to the local planner.
+        If no starting location is passed, the vehicle local planner's target location is chosen,
+        which corresponds (by default), to a location about 5 meters in front of the vehicle.
+
+            :param end_location (carla.Location): final location of the route
+            :param start_location (carla.Location): starting location of the route
+        """
+        if not start_location:
+            start_location = self._local_planner.target_waypoint.transform.location
+            clean_queue = True
+        else:
+            start_location = self._vehicle.get_location()
+            clean_queue = False
+
+        # start_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        # end_waypoint = self._map.get_waypoint(carla.Location(location[0], location[1], location[2]))
+        start_waypoint = self._map.get_waypoint(start_location)
+        end_waypoint = self._map.get_waypoint(end_location)
+
+        route_trace = self.trace_route(start_waypoint, end_waypoint)
+        self.local_planner.set_global_plan(route_trace, clean_queue=clean_queue)
+        # assert route_trace
+
+    def set_global_plan(self, plan, stop_waypoint_creation=True, clean_queue=True):
+        """
+        Adds a specific plan to the agent.
+
+            :param plan: list of [carla.Waypoint, RoadOption] representing the route to be followed
+            :param stop_waypoint_creation: stops the automatic random creation of waypoints
+            :param clean_queue: resets the current agent's plan
+        """
+        self._local_planner.set_global_plan(
+            plan,
+            stop_waypoint_creation=stop_waypoint_creation,
+            clean_queue=clean_queue
+        )
+
+    def trace_route(self, start_waypoint, end_waypoint):
         """
         This method sets up a global router and returns the optimal route
         from start_waypoint to end_waypoint
