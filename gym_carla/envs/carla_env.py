@@ -182,6 +182,8 @@ class RoundAboutEnv(gym.Env):
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
     self.waypoints = self.ego.local_planner.get_waypoints(length=50)
     self.vehicle_front =  self.ego.detect_hazard()
+    # print("self.waypoints: ", self.waypoints, " length: ", len(self.waypoints))
+    # print("self.vehicle_front: ", self.vehicle_front)
     ############################################################################
     return self._get_obs()
   
@@ -216,7 +218,9 @@ class RoundAboutEnv(gym.Env):
       self.vehicle_polygons.pop(0)
 
     # route planner
-    self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
+    # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
+    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    self.vehicle_front =  self.ego.detect_hazard()
 
     # state information
     info = {
