@@ -182,7 +182,7 @@ class BasicAgent(Agent):
             :param stop_waypoint_creation: stops the automatic random creation of waypoints
             :param clean_queue: resets the current agent's plan
         """
-        self._local_planner.set_global_plan(
+        self.local_planner.set_global_plan(
             plan,
             stop_waypoint_creation=stop_waypoint_creation,
             clean_queue=clean_queue
@@ -276,7 +276,7 @@ class BasicAgent(Agent):
         if affected_by_tlight:
             hazard_detected = True
 
-        control = self._local_planner.run_step()
+        control = self.local_planner.run_step()
         if hazard_detected:
             control = self.add_emergency_stop(control)
 
@@ -491,6 +491,9 @@ class BasicAgent(Agent):
             :param max_distance: max freespace to check for obstacles.
                 If None, the base threshold value is used
         """
+        if self.local_planner.get_plan() is None:
+            return (False, None, -1)
+
         def get_route_polygon():
             route_bb = []
             extent_y = self._vehicle.bounding_box.extent.y
@@ -501,22 +504,22 @@ class BasicAgent(Agent):
             # p2 = ego_location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
 
             forward_vec = ego_transform.get_forward_vector()
-            r_vec_x = math.cos(math.radians(ego_transform.yaw - 90.0))
-            r_vec_y = math.sin(math.radians(ego_transform.yaw - 90.0))
-            print("forward_vec: ", forward_vec, " r_vec_xy: ", r_vec_x, " ", r_vec_y)
+            r_vec_x = math.cos(math.radians(ego_transform.rotation.yaw - 90.0))
+            r_vec_y = math.sin(math.radians(ego_transform.rotation.yaw - 90.0))
+            # print("forward_vec: ", forward_vec, " r_vec_xy: ", r_vec_x, " ", r_vec_y)
             p1 = ego_location + carla.Location(r_ext * r_vec_x, r_ext * r_vec_y)
             p2 = ego_location + carla.Location(l_ext * r_vec_x, l_ext * r_vec_y)
             route_bb.extend([[p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]])
 
-            for wp, _ in self._local_planner.get_plan():
+            for wp, _ in self.local_planner.get_plan():
                 if ego_location.distance(wp.transform.location) > max_distance:
                     break
 
                 # r_vec = wp.transform.get_right_vector()
                 # p1 = wp.transform.location + carla.Location(r_ext * r_vec.x, r_ext * r_vec.y)
                 # p2 = wp.transform.location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
-                r_vec_x = math.cos(math.radians(ego_transform.yaw - 90.0))
-                r_vec_y = math.sin(math.radians(ego_transform.yaw - 90.0))
+                r_vec_x = math.cos(math.radians(ego_transform.rotation.yaw - 90.0))
+                r_vec_y = math.sin(math.radians(ego_transform.rotation.yaw - 90.0))
                 p1 = ego_location + carla.Location(r_ext * r_vec_x, r_ext * r_vec_y)
                 p2 = ego_location + carla.Location(l_ext * r_vec_x, l_ext * r_vec_y)                
                 route_bb.extend([[p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]])
@@ -580,7 +583,7 @@ class BasicAgent(Agent):
             else:
 
                 if target_wpt.road_id != ego_wpt.road_id or target_wpt.lane_id != ego_wpt.lane_id  + lane_offset:
-                    next_wpt = self._local_planner.get_incoming_waypoint_and_direction(steps=3)[0]
+                    next_wpt = self.local_planner.get_incoming_waypoint_and_direction(steps=3)[0]
                     if not next_wpt:
                         continue
                     if target_wpt.road_id != next_wpt.road_id or target_wpt.lane_id != next_wpt.lane_id  + lane_offset:
