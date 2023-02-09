@@ -31,9 +31,9 @@ from agents.tools.misc import (get_speed, is_within_distance,
                                compute_distance, positive)
 
 
-class BasicAgent(Agent):
+class SafeAgent(Agent):
     """
-    BasicAgent implements an agent that navigates the scene.
+    SafeAgent implements an agent that navigates the scene.
     This agent respects traffic lights and other vehicles, but ignores stop signs.
     It has several functions available to specify the route that the agent must follow,
     as well as to change its parameters in case a different driving mode is desired.
@@ -45,7 +45,7 @@ class BasicAgent(Agent):
 
         :param vehicle: actor to apply to local planner logic onto
         """
-        super(BasicAgent, self).__init__(vehicle)
+        super(SafeAgent, self).__init__(vehicle)
         self._last_traffic_light = None
 
         # Base parameters

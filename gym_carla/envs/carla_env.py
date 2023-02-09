@@ -22,7 +22,7 @@ import carla
 # from gym_carla.envs.render import BirdeyeRender
 from gym_carla.envs.route_planner import RoutePlanner
 from gym_carla.envs.misc import *
-from agents.navigation.basic_agent import BasicAgent
+from agents.navigation.safe_agent import SafeAgent
 
 
 class RoundAboutEnv(gym.Env):
@@ -282,7 +282,7 @@ class RoundAboutEnv(gym.Env):
     vehicle = self.world.try_spawn_actor(blueprint, transform)
     if vehicle is not None:
       # vehicle.set_autopilot()
-      vehicle = BasicAgent(vehicle)
+      vehicle = SafeAgent(vehicle)
       self.vehicles.append(vehicle)
       return True
     return False
@@ -311,7 +311,7 @@ class RoundAboutEnv(gym.Env):
       vehicle = self.world.try_spawn_actor(self.ego_bp, transform)
 
     if vehicle is not None:
-      self.ego=BasicAgent(vehicle)
+      self.ego=SafeAgent(vehicle)
       return True
       
     return False
