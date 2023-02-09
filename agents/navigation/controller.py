@@ -10,41 +10,53 @@
 
 from collections import deque
 import math
-
 import numpy as np
-
 import carla
 from agents.tools.misc import get_speed
 
 
 class VehiclePIDController():
     """
-    VehiclePIDController is the combination of two PID controllers (lateral and longitudinal) to perform the
+    VehiclePIDController is the combination of two PID controllers 
+    (lateral and longitudinal) to perform the
     low level control a vehicle from client side
     """
 
-    def __init__(self, vehicle, args_lateral=None, args_longitudinal=None):
+    # def __init__(self, vehicle, args_lateral=None, args_longitudinal=None):
+    def __init__(self, vehicle, args_lateral, args_longitudinal, offset=0, max_throttle=0.75, max_brake=0.3, max_steering=0.8):        
         """
+        Constructor method.
+
         :param vehicle: actor to apply to local planner logic onto
-        :param args_lateral: dictionary of arguments to set the lateral PID controller using the following semantics:
-                             K_P -- Proportional term
-                             K_D -- Differential term
-                             K_I -- Integral term
-        :param args_longitudinal: dictionary of arguments to set the longitudinal PID controller using the following
-        semantics:
-                             K_P -- Proportional term
-                             K_D -- Differential term
-                             K_I -- Integral term
+        :param args_lateral: dictionary of arguments to set the lateral PID controller
+        using the following semantics:
+            K_P -- Proportional term
+            K_D -- Differential term
+            K_I -- Integral term
+        :param args_longitudinal: dictionary of arguments to set the longitudinal
+        PID controller using the following semantics:
+            K_P -- Proportional term
+            K_D -- Differential term
+            K_I -- Integral term
+        :param offset: If different than zero, the vehicle will drive displaced from the center line.
+        Positive values imply a right offset while negative ones mean a left one. Numbers high enough
+        to cause the vehicle to drive through other lanes might break the controller.
         """
-        if not args_lateral:
-            args_lateral = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
-        if not args_longitudinal:
-            args_longitudinal = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
+        # if not args_lateral:
+        #     args_lateral = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
+        # if not args_longitudinal:
+        #     args_longitudinal = {'K_P': 1.0, 'K_D': 0.0, 'K_I': 0.0}
+
+        self.max_brake = max_brake
+        self.max_throt = max_throttle
+        self.max_steer = max_steering
 
         self._vehicle = vehicle
         self._world = self._vehicle.get_world()
+        self.past_steering = self._vehicle.get_control().steer
         self._lon_controller = PIDLongitudinalController(self._vehicle, **args_longitudinal)
-        self._lat_controller = PIDLateralController(self._vehicle, **args_lateral)
+        # self._lat_controller = PIDLateralController(self._vehicle, **args_lateral)
+        self._lat_controller = PIDLateralController(self._vehicle, offset, **args_lateral)
 
     def run_step(self, target_speed, waypoint):
         """
