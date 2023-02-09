@@ -6,45 +6,118 @@
 # This work is licensed under the terms of the MIT license.
 # For a copy, see <https://opensource.org/licenses/MIT>.
 
-""" This module implements an agent that roams around a track following random
-waypoints and avoiding other vehicles.
-The agent also responds to traffic lights. """
+"""
+This module implements an agent that roams around a track following random
+waypoints and avoiding other vehicles. The agent also responds to traffic lights.
+It can also make use of the global route planner to follow a specified route.
+"""
 
 
 import carla
 from agents.navigation.agent import Agent, AgentState
-from agents.navigation.local_planner import LocalPlanner
+from agents.navigation.local_planner import LocalPlanner, RoadOption
 from agents.navigation.global_route_planner import GlobalRoutePlanner
 from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
+from agents.tools.misc import (get_speed, is_within_distance,
+                               get_trafficlight_trigger_location,
+                               compute_distance)
+
 
 class BasicAgent(Agent):
     """
-    BasicAgent implements a basic agent that navigates scenes to reach a given
-    target destination. This agent respects traffic lights and other vehicles.
+    BasicAgent implements an agent that navigates the scene.
+    This agent respects traffic lights and other vehicles, but ignores stop signs.
+    It has several functions available to specify the route that the agent must follow,
+    as well as to change its parameters in case a different driving mode is desired.
     """
 
-    def __init__(self, vehicle, target_speed=20):
+    # def __init__(self, vehicle, target_speed=20):
+    def __init__(self, vehicle, target_speed=20, opt_dict={}, map_inst=None, grp_inst=None):
         """
 
         :param vehicle: actor to apply to local planner logic onto
         """
         super(BasicAgent, self).__init__(vehicle)
+        self._last_traffic_light = None
 
-        self._proximity_threshold = 10.0  # meters
-        self._state = AgentState.NAVIGATING
-        args_lateral_dict = {
-            'K_P': 1,
-            'K_D': 0.02,
-            'K_I': 0,
-            'dt': 1.0/20.0}
-        self.local_planner = LocalPlanner(
-            self._vehicle, opt_dict={'target_speed' : target_speed,
-            'lateral_control_dict':args_lateral_dict})
-        self._hop_resolution = 2.0
-        self._path_seperation_hop = 2
-        self._path_seperation_threshold = 0.5
+        # Base parameters
+        self._ignore_traffic_lights = False
+        self._ignore_stop_signs = False
+        self._ignore_vehicles = False
+        self._use_bbs_detection = False
         self._target_speed = target_speed
-        self._grp = None
+        self._sampling_resolution = 2.0
+        self._base_tlight_threshold = 5.0  # meters
+        self._base_vehicle_threshold = 5.0  # meters
+        self._speed_ratio = 1
+        self._max_brake = 0.5
+        self._offset = 0
+
+        # Change parameters according to the dictionary
+        opt_dict['target_speed'] = target_speed
+        if 'ignore_traffic_lights' in opt_dict:
+            self._ignore_traffic_lights = opt_dict['ignore_traffic_lights']
+        if 'ignore_stop_signs' in opt_dict:
+            self._ignore_stop_signs = opt_dict['ignore_stop_signs']
+        if 'ignore_vehicles' in opt_dict:
+            self._ignore_vehicles = opt_dict['ignore_vehicles']
+        if 'use_bbs_detection' in opt_dict:
+            self._use_bbs_detection = opt_dict['use_bbs_detection']
+        if 'sampling_resolution' in opt_dict:
+            self._sampling_resolution = opt_dict['sampling_resolution']
+        if 'base_tlight_threshold' in opt_dict:
+            self._base_tlight_threshold = opt_dict['base_tlight_threshold']
+        if 'base_vehicle_threshold' in opt_dict:
+            self._base_vehicle_threshold = opt_dict['base_vehicle_threshold']
+        if 'detection_speed_ratio' in opt_dict:
+            self._speed_ratio = opt_dict['detection_speed_ratio']
+        if 'max_brake' in opt_dict:
+            self._max_brake = opt_dict['max_brake']
+        if 'offset' in opt_dict:
+            self._offset = opt_dict['offset']
+
+        # self._proximity_threshold = 10.0  # meters
+        # self._state = AgentState.NAVIGATING
+        # args_lateral_dict = {
+        #     'K_P': 1,
+        #     'K_D': 0.02,
+        #     'K_I': 0,
+        #     'dt': 1.0/20.0}
+        # self.local_planner = LocalPlanner(
+        #     self._vehicle, opt_dict={'target_speed' : target_speed,
+        #     'lateral_control_dict':args_lateral_dict})
+        # self._hop_resolution = 2.0
+        # self._path_seperation_hop = 2
+        # self._path_seperation_threshold = 0.5
+        # self._target_speed = target_speed
+        # self._grp = None
+
+        # Initialize the planners
+        self.local_planner = LocalPlanner(self._vehicle, opt_dict=opt_dict, map_inst=self._map)
+        if grp_inst:
+            if isinstance(grp_inst, GlobalRoutePlanner):
+                self._global_planner = grp_inst
+            else:
+                print("Warning: Ignoring the given map as it is not a 'carla.Map'")
+                self._global_planner = GlobalRoutePlanner(self._map, self._sampling_resolution)
+        else:
+            self._global_planner = GlobalRoutePlanner(self._map, self._sampling_resolution)
+
+        # Get the static elements of the scene
+        self._lights_list = self._world.get_actors().filter("*traffic_light*")
+        self._lights_map = {}  # Dictionary mapping a traffic light to a wp corrspoing to its trigger volume location
+
+    def add_emergency_stop(self, control):
+        """
+        Overwrites the throttle a brake values of a control to perform an emergency stop.
+        The steering is kept the same to avoid going out of the lane when stopping during turns
+
+            :param speed (carl.VehicleControl): control to be modified
+        """
+        control.throttle = 0.0
+        control.brake = self._max_brake
+        control.hand_brake = False
+        return control
 
     def set_destination(self, location):
         """
