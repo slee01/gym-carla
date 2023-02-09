@@ -14,6 +14,7 @@ It can also make use of the global route planner to follow a specified route.
 
 
 import carla
+import math
 from shapely.geometry import Polygon
 
 from agents.navigation.agent import Agent, AgentState
@@ -473,18 +474,29 @@ class BasicAgent(Agent):
             extent_y = self._vehicle.bounding_box.extent.y
             r_ext = extent_y + self._offset
             l_ext = -extent_y + self._offset
-            r_vec = ego_transform.get_right_vector()
-            p1 = ego_location + carla.Location(r_ext * r_vec.x, r_ext * r_vec.y)
-            p2 = ego_location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
+            # r_vec = ego_transform.get_right_vector()
+            # p1 = ego_location + carla.Location(r_ext * r_vec.x, r_ext * r_vec.y)
+            # p2 = ego_location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
+
+            forward_vec = ego_transform.get_forward_vector()
+            r_vec_x = math.cos(math.radians(ego_transform.yaw - 90.0))
+            r_vec_y = math.sin(math.radians(ego_transform.yaw - 90.0))
+            print("forward_vec: ", forward_vec, " r_vec_xy: ", r_vec_x, " ", r_vec_y)
+            p1 = ego_location + carla.Location(r_ext * r_vec_x, r_ext * r_vec_y)
+            p2 = ego_location + carla.Location(l_ext * r_vec_x, l_ext * r_vec_y)
             route_bb.extend([[p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]])
 
             for wp, _ in self._local_planner.get_plan():
                 if ego_location.distance(wp.transform.location) > max_distance:
                     break
 
-                r_vec = wp.transform.get_right_vector()
-                p1 = wp.transform.location + carla.Location(r_ext * r_vec.x, r_ext * r_vec.y)
-                p2 = wp.transform.location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
+                # r_vec = wp.transform.get_right_vector()
+                # p1 = wp.transform.location + carla.Location(r_ext * r_vec.x, r_ext * r_vec.y)
+                # p2 = wp.transform.location + carla.Location(l_ext * r_vec.x, l_ext * r_vec.y)
+                r_vec_x = math.cos(math.radians(ego_transform.yaw - 90.0))
+                r_vec_y = math.sin(math.radians(ego_transform.yaw - 90.0))
+                p1 = ego_location + carla.Location(r_ext * r_vec_x, r_ext * r_vec_y)
+                p2 = ego_location + carla.Location(l_ext * r_vec_x, l_ext * r_vec_y)                
                 route_bb.extend([[p1.x, p1.y, p1.z], [p2.x, p2.y, p2.z]])
 
             # Two points don't create a polygon, nothing to check
