@@ -369,7 +369,10 @@ class RoundAboutEnv(gym.Env):
   def _set_vehicle_paths(self):
     if self.dests is not None: # If at destination
       for vehicle in self.vehicles:
-        vehicle.set_destination(random.choice(self.dests))
+        # print("self.dests: ", self.dests)  # [[x,y,z], [x,y,z], [x,y,z], ..., [x,y,z]]
+        _dest = random.choice(self.dests)
+        # vehicle.set_destination(random.choice(self.dests))
+        vehicle.set_destination(carla.Location(_dest[0], _dest[1], _dest[2]))
         # print("vehicle.id: ", vehicle._vehicle.id)
         # print("vehicle.local_planner._waypoints_queue: ", vehicle.local_planner._waypoints_queue)
         # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
