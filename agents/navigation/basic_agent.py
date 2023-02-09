@@ -14,10 +14,13 @@ It can also make use of the global route planner to follow a specified route.
 
 
 import carla
+from shapely.geometry import Polygon
+
 from agents.navigation.agent import Agent, AgentState
 from agents.navigation.local_planner import LocalPlanner, RoadOption
 from agents.navigation.global_route_planner import GlobalRoutePlanner
-from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
+# from agents.navigation.global_route_planner import GlobalRoutePlanner
+# from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from agents.tools.misc import (get_speed, is_within_distance,
                                get_trafficlight_trigger_location,
                                compute_distance)
@@ -209,44 +212,72 @@ class BasicAgent(Agent):
         end_location = end_waypoint.transform.location
         return self._global_planner.trace_route(start_location, end_location)
 
-    def run_step(self, debug=False):
-        """
-        Execute one step of navigation.
-        :return: carla.VehicleControl
-        """
+    # def run_step(self, debug=False):
+    #     """
+    #     Execute one step of navigation.
+    #     :return: carla.VehicleControl
+    #     """
 
-        # is there an obstacle in front of us?
+    #     # is there an obstacle in front of us?
+    #     hazard_detected = False
+
+    #     # retrieve relevant elements for safe navigation, i.e.: traffic lights
+    #     # and other vehicles
+    #     actor_list = self._world.get_actors()
+    #     vehicle_list = actor_list.filter("*vehicle*")
+    #     lights_list = actor_list.filter("*traffic_light*")
+
+    #     # check possible obstacles
+    #     vehicle_state, vehicle = self._is_vehicle_hazard(vehicle_list)
+    #     if vehicle_state:
+    #         if debug:
+    #             print('!!! VEHICLE BLOCKING AHEAD [{}])'.format(vehicle.id))
+
+    #         self._state = AgentState.BLOCKED_BY_VEHICLE
+    #         hazard_detected = True
+
+    #     # check for the state of the traffic lights
+    #     light_state, traffic_light = self._is_light_red(lights_list)
+    #     if light_state:
+    #         if debug:
+    #             print('=== RED LIGHT AHEAD [{}])'.format(traffic_light.id))
+
+    #         self._state = AgentState.BLOCKED_RED_LIGHT
+    #         hazard_detected = True
+
+    #     if hazard_detected:
+    #         control = self.emergency_stop()
+    #     else:
+    #         self._state = AgentState.NAVIGATING
+    #         # standard local planner behavior
+    #         control = self.local_planner.run_step(debug=debug)
+
+    #     return control
+
+    def run_step(self):
+        """Execute one step of navigation."""
         hazard_detected = False
 
-        # retrieve relevant elements for safe navigation, i.e.: traffic lights
-        # and other vehicles
-        actor_list = self._world.get_actors()
-        vehicle_list = actor_list.filter("*vehicle*")
-        lights_list = actor_list.filter("*traffic_light*")
+        # Retrieve all relevant actors
+        vehicle_list = self._world.get_actors().filter("*vehicle*")
 
-        # check possible obstacles
-        vehicle_state, vehicle = self._is_vehicle_hazard(vehicle_list)
-        if vehicle_state:
-            if debug:
-                print('!!! VEHICLE BLOCKING AHEAD [{}])'.format(vehicle.id))
+        vehicle_speed = get_speed(self._vehicle) / 3.6
 
-            self._state = AgentState.BLOCKED_BY_VEHICLE
+        # Check for possible vehicle obstacles
+        max_vehicle_distance = self._base_vehicle_threshold + self._speed_ratio * vehicle_speed
+        affected_by_vehicle, _, _ = self._vehicle_obstacle_detected(vehicle_list, max_vehicle_distance)
+        if affected_by_vehicle:
             hazard_detected = True
 
-        # check for the state of the traffic lights
-        light_state, traffic_light = self._is_light_red(lights_list)
-        if light_state:
-            if debug:
-                print('=== RED LIGHT AHEAD [{}])'.format(traffic_light.id))
-
-            self._state = AgentState.BLOCKED_RED_LIGHT
+        # Check if the vehicle is affected by a red traffic light
+        max_tlight_distance = self._base_tlight_threshold + self._speed_ratio * vehicle_speed
+        affected_by_tlight, _ = self._affected_by_traffic_light(self._lights_list, max_tlight_distance)
+        if affected_by_tlight:
             hazard_detected = True
 
+        control = self._local_planner.run_step()
         if hazard_detected:
-            control = self.emergency_stop()
-        else:
-            self._state = AgentState.NAVIGATING
-            # standard local planner behavior
-            control = self.local_planner.run_step(debug=debug)
+            control = self.add_emergency_stop(control)
 
         return control
+        
