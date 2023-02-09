@@ -98,7 +98,7 @@ class LocalPlanner(object):
         self._waypoints_queue = deque(maxlen=10000)
         self._min_waypoint_queue_length = 100
         self._stop_waypoint_creation = False
-        
+
         # Base parameters
         self._dt = 1.0 / 20.0
         self._target_speed = 20.0  # Km/h
@@ -160,53 +160,60 @@ class LocalPlanner(object):
         :param opt_dict: dictionary of arguments.
         :return:
         """
-        # default params
-        self._dt = 1.0 / 20.0
-        self._target_speed = 20.0  # Km/h
-        self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
-        self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
-        args_lateral_dict = {
-            'K_P': 1.95,
-            # 'K_D': 0.01,
-            'K_D': 0.2,
-            # 'K_I': 1.4,
-            'K_I': 0.05,
-            'dt': self._dt}
-        args_longitudinal_dict = {
-            'K_P': 1.0,
-            # 'K_D': 0,
-            'K_D': 0,
-            # 'K_I': 1,
-            'K_I': 0.05,
-            'dt': self._dt}
+        # # default params
+        # self._dt = 1.0 / 20.0
+        # self._target_speed = 20.0  # Km/h
+        # self._sampling_radius = self._target_speed * 1 / 3.6  # 1 seconds horizon
+        # self._min_distance = self._sampling_radius * self.MIN_DISTANCE_PERCENTAGE
+        # args_lateral_dict = {
+        #     'K_P': 1.95,
+        #     # 'K_D': 0.01,
+        #     'K_D': 0.2,
+        #     # 'K_I': 1.4,
+        #     'K_I': 0.05,
+        #     'dt': self._dt}
+        # args_longitudinal_dict = {
+        #     'K_P': 1.0,
+        #     # 'K_D': 0,
+        #     'K_D': 0,
+        #     # 'K_I': 1,
+        #     'K_I': 0.05,
+        #     'dt': self._dt}
 
-        # parameters overload
-        if opt_dict:
-            if 'dt' in opt_dict:
-                self._dt = opt_dict['dt']
-            if 'target_speed' in opt_dict:
-                self._target_speed = opt_dict['target_speed']
-            if 'sampling_radius' in opt_dict:
-                self._sampling_radius = self._target_speed * \
-                    opt_dict['sampling_radius'] / 3.6
-            if 'lateral_control_dict' in opt_dict:
-                args_lateral_dict = opt_dict['lateral_control_dict']
-            if 'longitudinal_control_dict' in opt_dict:
-                args_longitudinal_dict = opt_dict['longitudinal_control_dict']
+        # # parameters overload
+        # if opt_dict:
+        #     if 'dt' in opt_dict:
+        #         self._dt = opt_dict['dt']
+        #     if 'target_speed' in opt_dict:
+        #         self._target_speed = opt_dict['target_speed']
+        #     if 'sampling_radius' in opt_dict:
+        #         self._sampling_radius = self._target_speed * \
+        #             opt_dict['sampling_radius'] / 3.6
+        #     if 'lateral_control_dict' in opt_dict:
+        #         args_lateral_dict = opt_dict['lateral_control_dict']
+        #     if 'longitudinal_control_dict' in opt_dict:
+        #         args_longitudinal_dict = opt_dict['longitudinal_control_dict']
 
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        self._vehicle_controller = VehiclePIDController(self._vehicle,
-                                                       args_lateral=args_lateral_dict,
-                                                       args_longitudinal=args_longitudinal_dict)
-
-        self._global_plan = False
+        self._vehicle_controller = VehiclePIDController(
+            self._vehicle,args_lateral=self._args_lateral_dict,
+            args_longitudinal=self._args_longitudinal_dict,
+            offset=self._offset,
+            max_throtle=self._max_throt,
+            max_brake=self._max_brake,
+            max_steering=self._max_steer)
 
         # compute initial waypoints
-        self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
+        # self._waypoints_queue.append((self._current_waypoint.next(self._sampling_radius)[0], RoadOption.LANEFOLLOW))
+        # self.target_road_option = RoadOption.LANEFOLLOW
+        # self._global_plan = False
 
-        self.target_road_option = RoadOption.LANEFOLLOW
-        # fill waypoint trajectory queue
-        self._compute_next_waypoints(k=200)
+        # # fill waypoint trajectory queue
+        # self._compute_next_waypoints(k=200)
+        
+        # compute initial waypoints
+        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        self.target_waypoint, self.target_road_option = (self._current_waypoint, RoadOption.LANEFOLLOW)
+        self._waypoints_queue.append((self.target_waypoint, self.target_road_option))
 
     def set_speed(self, speed):
         """
