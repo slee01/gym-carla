@@ -14,7 +14,7 @@ import random
 
 import carla
 from agents.navigation.controller import VehiclePIDController
-from agents.tools.misc import distance_vehicle, draw_waypoints
+from agents.tools.misc import distance_vehicle, draw_waypoints, get_speed
 
 
 class RoadOption(Enum):
@@ -224,6 +224,15 @@ class LocalPlanner(object):
         """
         self._target_speed = speed
 
+    def follow_speed_limits(self, value=True):
+        """
+        Activates a flag that makes the max speed dynamically vary according to the spped limits
+
+        :param value: bool
+        :return:
+        """
+        self._follow_speed_limits = value
+
     def _compute_next_waypoints(self, k=1):
         """
         Add new waypoints to the trajectory queue.
@@ -340,11 +349,74 @@ class LocalPlanner(object):
         :param debug: boolean flag to activate waypoints debugging
         :return:
         """
+        # if self._follow_speed_limits:
+            # self._target_speed = self._vehicle.get_speed_limit()
 
         # not enough waypoints in the horizon? => add more!
-        if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
-            self._compute_next_waypoints(k=100)
+        # if not self._global_plan and len(self._waypoints_queue) < int(self._waypoints_queue.maxlen * 0.5):
+            # self._compute_next_waypoints(k=100)
+        if not self._stop_waypoint_creation and len(self._waypoints_queue) < self._min_waypoint_queue_length:            
+            self._compute_next_waypoints(k=self._min_waypoint_queue_length)
 
+        # if len(self._waypoints_queue) == 0:
+        #     control = carla.VehicleControl()
+        #     control.steer = 0.0
+        #     control.throttle = 0.0
+        #     control.brake = 1.0
+        #     control.hand_brake = False
+        #     control.manual_gear_shift = False
+
+        #     return control
+
+        # #   Buffering the waypoints
+        # if not self._waypoint_buffer:
+        #     for i in range(self._buffer_size):
+        #         if self._waypoints_queue:
+        #             self._waypoint_buffer.append(
+        #                 self._waypoints_queue.popleft())
+        #         else:
+        #             break
+
+        # # current vehicle waypoint
+        # self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        # # target waypoint
+        # self.target_waypoint, self.target_road_option = self._waypoint_buffer[0]
+        # # move using PID controllers
+        # control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
+
+        # # purge the queue of obsolete waypoints
+        # vehicle_transform = self._vehicle.get_transform()
+        # max_index = -1
+
+        # for i, (waypoint, _) in enumerate(self._waypoint_buffer):
+        #     if distance_vehicle(waypoint, vehicle_transform) < self._min_distance:
+        #         max_index = i
+        # if max_index >= 0:
+        #     for i in range(max_index + 1):
+        #         self._waypoint_buffer.popleft()
+
+        # purge the queue of obsolete waypoints
+        veh_location = self._vehicle.get_location()
+        vehicle_speed = get_speed(self._vehicle) / 3.6
+        self._min_distance = self._base_min_distance + self._distance_ratio * vehicle_speed
+        num_waypoint_removed = 0
+        for waypoint, _ in self._waypoints_queue:
+
+            if len(self._waypoints_queue) - num_waypoint_removed == 1:
+                min_distance = 1  # Don't remove the last waypoint until very close by
+            else:
+                min_distance = self._min_distance
+
+            if veh_location.distance(waypoint.transform.location) < min_distance:
+                num_waypoint_removed += 1
+            else:
+                break
+
+        if num_waypoint_removed > 0:
+            for _ in range(num_waypoint_removed):
+                self._waypoints_queue.popleft()
+
+        # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
         if len(self._waypoints_queue) == 0:
             control = carla.VehicleControl()
             control.steer = 0.0
@@ -352,36 +424,9 @@ class LocalPlanner(object):
             control.brake = 1.0
             control.hand_brake = False
             control.manual_gear_shift = False
-
-            return control
-
-        #   Buffering the waypoints
-        if not self._waypoint_buffer:
-            for i in range(self._buffer_size):
-                if self._waypoints_queue:
-                    self._waypoint_buffer.append(
-                        self._waypoints_queue.popleft())
-                else:
-                    break
-
-        # current vehicle waypoint
-        self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
-        # target waypoint
-        self.target_waypoint, self.target_road_option = self._waypoint_buffer[0]
-        # move using PID controllers
-        control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
-
-        # purge the queue of obsolete waypoints
-        vehicle_transform = self._vehicle.get_transform()
-        max_index = -1
-
-        for i, (waypoint, _) in enumerate(self._waypoint_buffer):
-            if distance_vehicle(
-                    waypoint, vehicle_transform) < self._min_distance:
-                max_index = i
-        if max_index >= 0:
-            for i in range(max_index + 1):
-                self._waypoint_buffer.popleft()
+        else:
+            self.target_waypoint, self.target_road_option = self._waypoints_queue[0]
+            control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
 
         if debug:
             draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
