@@ -58,138 +58,82 @@ class RoundAboutEnv(CarlaEnv):
     # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     # self.observation_space = spaces.Dict(observation_space_dict)
     self.observation_space = spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
+
+  def _get_obs(self):
+    """Get the observations."""
+
+    # State observation
+    ego_trans = self.ego.get_transform()
+    ego_x = ego_trans.location.x
+    ego_y = ego_trans.location.y
+    ego_yaw = ego_trans.rotation.yaw/180*np.pi
+    lateral_dis, w = get_preview_lane_dis(self.waypoints, ego_x, ego_y)
+    delta_yaw = np.arcsin(np.cross(w, 
+      np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
+    v = self.ego.get_velocity()
+    speed = np.sqrt(v.x**2 + v.y**2)
+    state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
+
+    # obs = {'state': state,}
+    # return obs
+    return state
+
+  def _get_reward(self):
+    """Calculate the step reward."""
+    # reward for speed tracking
+    v = self.ego.get_velocity()
+    speed = np.sqrt(v.x**2 + v.y**2)
+    r_speed = -abs(speed - self.desired_speed)
     
-  def reset(self):
-    # Clear sensor objects  
-    if self.collision_sensor is not None:
-      self.collision_sensor.stop()
-      self.collision_sensor.destroy()
-    self.collision_sensor = None
+    # reward for collision
+    r_collision = 0
+    if len(self.collision_hist) > 0:
+      r_collision = -1
 
-    self._clear_all_vehicles()
-    self.vehicles = []
-    
-    # Delete sensors, vehicles and walkers
-    # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
-    # self._clear_all_actors(['vehicle.*'])
+    # reward for steering:
+    r_steer = -self.ego.get_control().steer**2
 
-    # Disable sync mode
-    self._set_synchronous_mode(False)
-    # Spawn surrounding vehicles
-    random.shuffle(self.vehicle_spawn_points)
-    count = self.number_of_vehicles
-    if count > 0:
-      for spawn_point in self.vehicle_spawn_points:
-        if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
-          count -= 1
-        if count <= 0:
-          break
-    while count > 0:
-      if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
-        count -= 1
+    # reward for out of lane
+    ego_x, ego_y = get_pos(self.ego)
+    dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
+    r_out = 0
+    if abs(dis) > self.out_lane_thres:
+      r_out = -1
 
-    self._set_random_vehicle_paths()
+    # longitudinal speed
+    lspeed = np.array([v.x, v.y])
+    lspeed_lon = np.dot(lspeed, w)
 
-    # Get actors polygon list
-    self.vehicle_polygons = []
-    # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
-    vehicle_poly_dict = self._get_vehicle_polygons()
-    self.vehicle_polygons.append(vehicle_poly_dict)
+    # cost for too fast
+    r_fast = 0
+    if lspeed_lon > self.desired_speed:
+      r_fast = -1
 
-    # Spawn the ego vehicle
-    ego_spawn_times = 0
-    while True:
-      if ego_spawn_times > self.max_ego_spawn_times:
-        self.reset()
+    # cost for lateral acceleration
+    r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
 
-      if self.task_mode == 'random':
-        transform = random.choice(self.vehicle_spawn_points)
-      if self.task_mode == 'roundabout':
-        self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66] # random
-        # self.start=[52.1,-4.2, 178.66] # static
-        transform = set_carla_transform(self.start)
-      if self._try_spawn_ego_vehicle_at(transform):
-        break
-      else:
-        ego_spawn_times += 1
-        time.sleep(0.1)
-        
-    self._set_ego_vehicle_path()
+    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
 
-    # Add collision sensor
-    self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
-    self.collision_sensor.listen(lambda event: get_collision_hist(event))
-    def get_collision_hist(event):
-      impulse = event.normal_impulse
-      intensity = np.sqrt(impulse.x**2 + impulse.y**2 + impulse.z**2)
-      self.collision_hist.append(intensity)
-      if len(self.collision_hist)>self.collision_hist_l:
-        self.collision_hist.pop(0)
-        
-    self.collision_hist = []
+    return r
 
-    # Update timesteps
-    self.time_step=0
-    self.reset_step+=1
+  def _terminal(self):
+    """Calculate whether to terminate the current episode."""
+    # Get ego state
+    ego_x, ego_y = get_pos(self.ego)
 
-    # Enable sync mode
-    self.settings.synchronous_mode = True
-    self.world.apply_settings(self.settings)
-
-    # self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
-    # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    ############################################################################
-    # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
-    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
-    self.vehicle_front =  self.ego.detect_hazard()
-    # print("self.waypoints: ", self.waypoints, " length: ", len(self.waypoints))
-    # print("self.vehicle_front: ", self.vehicle_front)
-    ############################################################################
-    return self._get_obs()
-  
-  def step(self, action):
-    # Calculate acceleration and steering
-    if self.discrete:
-      acc = self.discrete_act[0][action//self.n_steer]
-      steer = self.discrete_act[1][action%self.n_steer]
-    else:
-      acc = action[0]
-      steer = action[1]
-
-    # Convert acceleration to throttle and brake
-    if acc > 0:
-      throttle = np.clip(acc/3,0,1)
-      brake = 0
-    else:
-      throttle = 0
-      brake = np.clip(-acc/8,0,1)
-
-    # Apply control
-    act = carla.VehicleControl(throttle=float(throttle), steer=float(-steer), brake=float(brake))
-    self.ego.apply_control(act)
-
-    self.world.tick()
-
-    # Append actors polygon list
-    # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
-    vehicle_poly_dict = self._get_vehicle_polygons()
-    self.vehicle_polygons.append(vehicle_poly_dict)
-    while len(self.vehicle_polygons) > self.max_past_step:
-      self.vehicle_polygons.pop(0)
-
-    # route planner
-    # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
-    self.vehicle_front =  self.ego.detect_hazard()
-
-    # state information
-    info = {
-      'waypoints': self.waypoints,
-      'vehicle_front': self.vehicle_front
-    }
-    
-    # Update timesteps
-    self.time_step += 1
-    self.total_step += 1
-
-    return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
+    # If collides
+    if len(self.collision_hist)>0: 
+      return True
+    # If reach maximum timestep
+    if self.time_step>=self.max_time_episode:
+      return True
+    # If at destination
+    if self.dests is not None: # If at destination
+      for dest in self.dests:
+        if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
+          return True
+    # If out of lane
+    dis, _ = get_lane_dis(self.waypoints, ego_x, ego_y)
+    if abs(dis) > self.out_lane_thres:
+      return True
+    return False

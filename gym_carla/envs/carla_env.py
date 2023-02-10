@@ -215,6 +215,15 @@ class CarlaEnv(gym.Env):
 
     return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
 
+  def _get_obs(self):
+    raise NotImplementedError
+
+  def _get_reward(self):
+    raise NotImplementedError
+
+  def _terminal(self):
+    raise NotImplementedError
+  
   def seed(self, seed=None):
     self.np_random, seed = seeding.np_random(seed)
     return [seed]
@@ -372,88 +381,6 @@ class CarlaEnv(gym.Env):
       self.ego.set_destination(carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
-
-  def _get_obs(self):
-    """Get the observations."""
-
-    # Display on pygame
-    # pygame.display.flip()
-
-    # State observation
-    ego_trans = self.ego.get_transform()
-    ego_x = ego_trans.location.x
-    ego_y = ego_trans.location.y
-    ego_yaw = ego_trans.rotation.yaw/180*np.pi
-    lateral_dis, w = get_preview_lane_dis(self.waypoints, ego_x, ego_y)
-    delta_yaw = np.arcsin(np.cross(w, 
-      np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
-    v = self.ego.get_velocity()
-    speed = np.sqrt(v.x**2 + v.y**2)
-    state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
-
-    # obs = {'state': state,}
-    # return obs
-    return state
-
-  def _get_reward(self):
-    """Calculate the step reward."""
-    # reward for speed tracking
-    v = self.ego.get_velocity()
-    speed = np.sqrt(v.x**2 + v.y**2)
-    r_speed = -abs(speed - self.desired_speed)
-    
-    # reward for collision
-    r_collision = 0
-    if len(self.collision_hist) > 0:
-      r_collision = -1
-
-    # reward for steering:
-    r_steer = -self.ego.get_control().steer**2
-
-    # reward for out of lane
-    ego_x, ego_y = get_pos(self.ego)
-    dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
-    r_out = 0
-    if abs(dis) > self.out_lane_thres:
-      r_out = -1
-
-    # longitudinal speed
-    lspeed = np.array([v.x, v.y])
-    lspeed_lon = np.dot(lspeed, w)
-
-    # cost for too fast
-    r_fast = 0
-    if lspeed_lon > self.desired_speed:
-      r_fast = -1
-
-    # cost for lateral acceleration
-    r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
-
-    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
-
-    return r
-
-  def _terminal(self):
-    """Calculate whether to terminate the current episode."""
-    # Get ego state
-    ego_x, ego_y = get_pos(self.ego)
-
-    # If collides
-    if len(self.collision_hist)>0: 
-      return True
-    # If reach maximum timestep
-    if self.time_step>=self.max_time_episode:
-      return True
-    # If at destination
-    if self.dests is not None: # If at destination
-      for dest in self.dests:
-        if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
-          return True
-    # If out of lane
-    dis, _ = get_lane_dis(self.waypoints, ego_x, ego_y)
-    if abs(dis) > self.out_lane_thres:
-      return True
-    return False
 
   def _clear_all_actors(self, actor_filters):
     """Clear specific actors."""

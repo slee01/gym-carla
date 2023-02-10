@@ -687,8 +687,8 @@ class SafeAgent(Agent):
                 positive(front_speed - self._behavior.speed_decrease),
                 self._behavior.max_speed,
                 _ego_speed_limit - self._behavior.speed_lim_dist])
-            self._local_planner.set_speed(target_speed)
-            control = self._local_planner.run_step(debug=debug)
+            self.local_planner.set_speed(target_speed)
+            control = self.local_planner.run_step(debug=debug)
 
         # Actual safety distance area, try to follow the speed of the vehicle in front.
         elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:
@@ -696,16 +696,16 @@ class SafeAgent(Agent):
                 max(self._min_speed, front_speed),
                 self._behavior.max_speed,
                 _ego_speed_limit - self._behavior.speed_lim_dist])
-            self._local_planner.set_speed(target_speed)
-            control = self._local_planner.run_step(debug=debug)
+            self.local_planner.set_speed(target_speed)
+            control = self.local_planner.run_step(debug=debug)
 
         # Normal behavior.
         else:
             target_speed = min([
                 self._behavior.max_speed,
                 _ego_speed_limit - self._behavior.speed_lim_dist])
-            self._local_planner.set_speed(target_speed)
-            control = self._local_planner.run_step(debug=debug)
+            self.local_planner.set_speed(target_speed)
+            control = self.local_planner.run_step(debug=debug)
 
         return control
 

@@ -479,11 +479,11 @@ class LocalPlanner(object):
     def get_waypoints(self, length=50):
         """Returns the current plan of the local planner"""
         waypoints = []       
-        waypoints_queue = list(itertools.islice(self._waypoints_queue, 0, 50))
+        waypoints_queue = list(itertools.islice(self._waypoints_queue, 0, length))
         for waypoint in waypoints_queue:
             waypoints.append([waypoint[0].transform.location.x, waypoint[0].transform.location.y, waypoint[0].transform.rotation.yaw])
         return waypoints
-
+        
     def done(self):
         """
         Returns whether or not the planner has finished
