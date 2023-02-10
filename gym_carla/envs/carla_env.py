@@ -190,6 +190,7 @@ class CarlaEnv(gym.Env):
     # Apply control
     act = carla.VehicleControl(throttle=float(throttle), steer=float(-steer), brake=float(brake))
     self.ego.apply_control(act)
+    self._apply_random_vehicle_control()
 
     self.world.tick()
 
@@ -275,7 +276,7 @@ class CarlaEnv(gym.Env):
     vehicle = self.world.try_spawn_actor(blueprint, transform)
     if vehicle is not None:
       # vehicle.set_autopilot()
-      vehicle = SafeAgent(vehicle)
+      vehicle = SafeAgent(vehicle, behavior="normal", dt=self.dt, target_speed=20.0)
       self.vehicles.append(vehicle)
       return True
     return False
@@ -304,7 +305,7 @@ class CarlaEnv(gym.Env):
       vehicle = self.world.try_spawn_actor(self.ego_bp, transform)
 
     if vehicle is not None:
-      self.ego=SafeAgent(vehicle)
+      self.ego=SafeAgent(vehicle, behavior="normal", dt=self.dt, target_speed=20.0)
       return True
       
     return False
@@ -386,12 +387,21 @@ class CarlaEnv(gym.Env):
       raise NotImplementedError
 
   def _set_vehicle_waypoints_and_trajectory(self, max_dist=80.0, max_time=5.0):
-    self.ego.set_trajectory(dt=self.dt)
     print("self.ego: ", self.ego, " speed: ", get_speed(self.ego) / 3.6)
+    self.ego.set_trajectory(max_t=2.0)
     for vehicle in self.vehicles:
       print("vehicle: ", vehicle, " speed: ", get_speed(vehicle) / 3.6)
-      vehicle.set_trajectory(dt=self.dt)
+      vehicle.set_trajectory(max_t=2.0)
   
+  def _apply_random_vehicle_control(self):
+    for vehicle in self.vehicles:
+      # print("=========================================================")
+      # print("vehicle: ", vehicle, " is_alive: ", vehicle.is_alive)
+      if vehicle.is_alive:
+        control = vehicle.run_step()
+        # print("control: ", control)
+        vehicle.apply_control(control)
+      
   def _clear_all_actors(self, actor_filters):
     """Clear specific actors."""
     for actor_filter in actor_filters:      
