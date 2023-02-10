@@ -14,7 +14,7 @@ It can also make use of the global route planner to follow a specified route.
 
 
 import carla
-import math
+import math, itertools
 import numpy as np
 
 from shapely.geometry import Polygon
@@ -124,6 +124,9 @@ class SafeAgent(Agent):
         self._lights_list = self._world.get_actors().filter("*traffic_light*")
         self._lights_map = {}  # Dictionary mapping a traffic light to a wp corrspoing to its trigger volume location
 
+        # Set trajectory extracted from waypoints
+        self.trajectory = None
+        
     # def add_emergency_stop(self, control):
     #     """
     #     Overwrites the throttle a brake values of a control to perform an emergency stop.
@@ -176,6 +179,45 @@ class SafeAgent(Agent):
         """Get method for protected member local planner"""
         return self._global_planner
 
+    def set_waypoints(self, length=50):
+        self.waypoints = self.local_planner.get_waypoints(length)
+        
+    def set_trajectory(self, length=50, dt=0.1, max_t=2.0):
+        """Set trajectory (self.trajectory) to follow"""
+        speed = get_speed(self._vehicle) / 3.6
+        traj_gap = speed * dt
+        traj_length = int(max_t / dt)
+        
+        self.set_waypoints(length)
+        trajectory = []
+        trajectory.append(self.waypoints[0])
+        # print("=============================================================================")
+        # print("traj_length: ", traj_length, " veh_speed: ", speed, " traj_gap: ", traj_gap)
+        left_dist = 0.0
+        traj_count = 0
+        for i in range(len(self.waypoints)-1):
+            left_dist += np.linalg.norm([self.waypoints[i][0]-self.waypoints[i+1][0], self.waypoints[i][1]-self.waypoints[i+1][1]])
+            wp_vec_x, wp_vec_y = math.cos(math.radians(self.waypoints[i][2])), math.sin(math.radians(self.waypoints[i][2]))
+                        
+            while left_dist >= traj_gap:                
+                new_pt = [
+                    trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, trajectory[-1][2]]                
+                left_dist -= traj_gap
+                trajectory.append(new_pt)
+                traj_count += 1
+                # print("i: ", i, " left_dist: ", left_dist, " way_pt[i]: ", self.waypoints[i], " way_pt[i+1]: ", self.waypoints[i+1])
+                # print("new_pt: ", new_pt, " traj_count: ", traj_count)
+                
+                if traj_count >= traj_length:
+                    break
+            
+            if traj_count >= traj_length:
+                break
+            
+        self.trajectory = trajectory
+        # print("waypoint: ", self.waypoints)
+        # print("trajectory: ", self.trajectory)
+    
     # def set_destination(self, location):
     def set_destination(self, end_location, start_location=None):
         """
