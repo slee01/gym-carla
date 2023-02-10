@@ -38,7 +38,7 @@ class SafeAgent(Agent):
     """
 
     # def __init__(self, vehicle, target_speed=20):
-    def __init__(self, vehicle, behavior='normal', target_speed=20, opt_dict={}, map_inst=None, grp_inst=None):
+    def __init__(self, vehicle, behavior='normal', dt=0.1, target_speed=20, opt_dict={}, map_inst=None, grp_inst=None):
         """
 
         :param vehicle: actor to apply to local planner logic onto
@@ -58,6 +58,7 @@ class SafeAgent(Agent):
         self._speed_ratio = 1
         self._max_brake = 0.5
         self._offset = 0
+        self._dt = dt
 
         self._behavior = None
         # Parameters for agent behavior
@@ -182,13 +183,17 @@ class SafeAgent(Agent):
     def set_waypoints(self, length=50):
         self.waypoints = self.local_planner.get_waypoints(length)
         
-    def set_trajectory(self, length=50, dt=0.1, max_t=2.0):
+    def set_trajectory(self, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
         speed = get_speed(self._vehicle) / 3.6
-        traj_gap = speed * dt
-        traj_length = int(max_t / dt)
+        traj_gap = speed * self._dt
+        traj_length = int(max_t / self._dt)
         
         self.set_waypoints(length)
+        if not self.waypoints:
+            self.trajectory = []
+            return
+        
         trajectory = []
         trajectory.append(self.waypoints[0])
         # print("=============================================================================")
@@ -201,12 +206,15 @@ class SafeAgent(Agent):
                         
             while left_dist >= traj_gap:                
                 new_pt = [
-                    trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, trajectory[-1][2]]                
+                    trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, self.waypoints[i][2]]
                 left_dist -= traj_gap
                 trajectory.append(new_pt)
                 traj_count += 1
-                # print("i: ", i, " left_dist: ", left_dist, " way_pt[i]: ", self.waypoints[i], " way_pt[i+1]: ", self.waypoints[i+1])
-                # print("new_pt: ", new_pt, " traj_count: ", traj_count)
+                # print("-----------------------------------------------------------------------------")
+                # print("i: ", i, " left_dist: ", left_dist, " traj_count: ", traj_count)
+                # print("way_pt[i]: ", self.waypoints[i])
+                # print("way_pt[i+1]: ", self.waypoints[i+1])
+                # print("new_pt: ", new_pt)
                 
                 if traj_count >= traj_length:
                     break
