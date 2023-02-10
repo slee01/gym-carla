@@ -67,7 +67,7 @@ class RoundAboutEnv(CarlaEnv):
     ego_x = ego_trans.location.x
     ego_y = ego_trans.location.y
     ego_yaw = ego_trans.rotation.yaw/180*np.pi
-    lateral_dis, w = get_preview_lane_dis(self.waypoints, ego_x, ego_y)
+    lateral_dis, w = get_preview_lane_dis(self.ego.waypoints, ego_x, ego_y)
     delta_yaw = np.arcsin(np.cross(w, 
       np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
     v = self.ego.get_velocity()
@@ -95,7 +95,7 @@ class RoundAboutEnv(CarlaEnv):
 
     # reward for out of lane
     ego_x, ego_y = get_pos(self.ego)
-    dis, w = get_lane_dis(self.waypoints, ego_x, ego_y)
+    dis, w = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
     r_out = 0
     if abs(dis) > self.out_lane_thres:
       r_out = -1
@@ -133,7 +133,7 @@ class RoundAboutEnv(CarlaEnv):
         if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
           return True
     # If out of lane
-    dis, _ = get_lane_dis(self.waypoints, ego_x, ego_y)
+    dis, _ = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
     if abs(dis) > self.out_lane_thres:
       return True
     return False

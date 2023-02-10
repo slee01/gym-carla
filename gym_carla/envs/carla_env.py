@@ -136,6 +136,7 @@ class CarlaEnv(gym.Env):
         time.sleep(0.1)
         
     self._set_ego_vehicle_path()
+    self._set_vehicle_waypoints_and_trajectory()
 
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
@@ -161,7 +162,8 @@ class CarlaEnv(gym.Env):
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
     ############################################################################
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
-    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    self._set_vehicle_waypoints_and_trajectory()
     self.vehicle_front =  self.ego.detect_hazard()
     # print("self.waypoints: ", self.waypoints, " length: ", len(self.waypoints))
     # print("self.vehicle_front: ", self.vehicle_front)
@@ -200,12 +202,13 @@ class CarlaEnv(gym.Env):
 
     # route planner
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    self._set_vehicle_waypoints_and_trajectory()
+    # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
     self.vehicle_front =  self.ego.detect_hazard()
 
     # state information
     info = {
-      'waypoints': self.waypoints,
+      'waypoints': self.ego.waypoints,
       'vehicle_front': self.vehicle_front
     }
     
@@ -382,6 +385,13 @@ class CarlaEnv(gym.Env):
     else:
       raise NotImplementedError
 
+  def _set_vehicle_waypoints_and_trajectory(self, max_dist=80.0, max_time=5.0):
+    self.ego.set_trajectory(dt=self.dt)
+    print("self.ego: ", self.ego, " speed: ", get_speed(self.ego) / 3.6)
+    for vehicle in self.vehicles:
+      print("vehicle: ", vehicle, " speed: ", get_speed(vehicle) / 3.6)
+      vehicle.set_trajectory(dt=self.dt)
+  
   def _clear_all_actors(self, actor_filters):
     """Clear specific actors."""
     for actor_filter in actor_filters:      
