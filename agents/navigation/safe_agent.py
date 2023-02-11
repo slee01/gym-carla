@@ -252,9 +252,10 @@ class SafeAgent(Agent):
         start_waypoint = self._map.get_waypoint(start_location)
         end_waypoint = self._map.get_waypoint(end_location)
 
-        print("-------------------------------------------------------------------")
-        print("vehicle id: ", self._vehicle.id, " location: ", self._vehicle.get_location())
-        print("start_waypoint: ", start_waypoint, " end_waypoint: ", end_waypoint)
+        # print("-------------------------------------------------------------------")
+        # print("vehicle id: ", self._vehicle.id, " location: ", self._vehicle.get_location())
+        # print("start_waypoint: ", start_waypoint.transform.location)
+        # print("end_waypoint: ", end_waypoint.transform.location)
         route_trace = self.trace_route(start_waypoint, end_waypoint)
         # print("route_trace: ", route_trace)
         self.local_planner.set_global_plan(route_trace, clean_queue=clean_queue)
