@@ -34,7 +34,6 @@ class CarlaEnv(gym.Env):
     self.max_past_step = params['max_past_step']
     self.number_of_vehicles = params['number_of_vehicles']
     self.dt = params['dt']
-    self.pred_dt = self.dt * 10.0
     self.max_waypt = params['max_waypt']
     self.obs_range = params['obs_range']
     self.d_behind = params['d_behind']
@@ -43,6 +42,11 @@ class CarlaEnv(gym.Env):
     self.max_ego_spawn_times = params['max_ego_spawn_times']
     self.display_route = params['display_route']
 
+    # self.pred_dt = params['pred_dt']
+    # self.pred_time = params['pred_time']
+    self.pred_dt = self.dt * 10.0
+    self.pred_time = 5.0
+    
     self.dests = None
     self.collision_infos = None
     self.discrete, self.discrete_act = None, None
@@ -499,7 +503,7 @@ class CarlaEnv(gym.Env):
     collisions = []
     for vehicle in self.vehicles:
       if vehicle.is_alive:
-        collision = self._get_time_to_collision(vehicle)
+        collision = self._get_time_to_collision(vehicle, max_time=self.pred_time)
         collisions.append(collision)
         
     return collisions
