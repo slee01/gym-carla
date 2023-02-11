@@ -417,6 +417,47 @@ class LocalPlanner(object):
         #     for i in range(max_index + 1):
         #         self._waypoint_buffer.popleft()
 
+        self.purge_deprecated_waypoints()
+        # purge the queue of obsolete waypoints
+        # veh_location = self._vehicle.get_location()
+        # vehicle_speed = get_speed(self._vehicle) / 3.6
+        # self._min_distance = self._base_min_distance + self._distance_ratio * vehicle_speed
+
+        # num_waypoint_removed = 0
+        # for waypoint, _ in self._waypoints_queue:
+
+        #     if len(self._waypoints_queue) - num_waypoint_removed == 1:
+        #         min_distance = 1  # Don't remove the last waypoint until very close by
+        #     else:
+        #         min_distance = self._min_distance
+
+        #     if veh_location.distance(waypoint.transform.location) < min_distance:
+        #         num_waypoint_removed += 1
+        #     else:
+        #         break
+
+        # if num_waypoint_removed > 0:
+        #     for _ in range(num_waypoint_removed):
+        #         self._waypoints_queue.popleft()
+
+        # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
+        if len(self._waypoints_queue) == 0:
+            control = carla.VehicleControl()
+            control.steer = 0.0
+            control.throttle = 0.0
+            control.brake = 1.0
+            control.hand_brake = False
+            control.manual_gear_shift = False
+        else:
+            self.target_waypoint, self.target_road_option = self._waypoints_queue[0]
+            control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
+
+        if debug:
+            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+
+        return control
+
+    def purge_deprecated_waypoints(self):
         # purge the queue of obsolete waypoints
         veh_location = self._vehicle.get_location()
         vehicle_speed = get_speed(self._vehicle) / 3.6
@@ -438,24 +479,7 @@ class LocalPlanner(object):
         if num_waypoint_removed > 0:
             for _ in range(num_waypoint_removed):
                 self._waypoints_queue.popleft()
-
-        # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
-        if len(self._waypoints_queue) == 0:
-            control = carla.VehicleControl()
-            control.steer = 0.0
-            control.throttle = 0.0
-            control.brake = 1.0
-            control.hand_brake = False
-            control.manual_gear_shift = False
-        else:
-            self.target_waypoint, self.target_road_option = self._waypoints_queue[0]
-            control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
-
-        if debug:
-            draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
-
-        return control
-
+                
     def get_incoming_waypoint_and_direction(self, steps=3):
         """
         Returns direction and waypoint at a distance ahead defined by the user.
@@ -478,8 +502,10 @@ class LocalPlanner(object):
 
     def get_waypoints(self, length=50):
         """Returns the current plan of the local planner"""
+        self.purge_deprecated_waypoints()
         waypoints = []       
         waypoints_queue = list(itertools.islice(self._waypoints_queue, 0, length))
+        # waypoints_queue = list(self._waypoints_queue)
         for waypoint in waypoints_queue:
             waypoints.append([waypoint[0].transform.location.x, waypoint[0].transform.location.y, waypoint[0].transform.rotation.yaw])
         return waypoints
