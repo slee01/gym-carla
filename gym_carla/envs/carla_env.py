@@ -44,6 +44,7 @@ class CarlaEnv(gym.Env):
     self.display_route = params['display_route']
 
     self.dests = None
+    self.collision_infos = None
     self.discrete, self.discrete_act = None, None
     self.n_acc, self.n_steer = None, None
     self.action_space = None
@@ -228,7 +229,9 @@ class CarlaEnv(gym.Env):
     self.vehicle_front =  self.ego.detect_hazard()
 
     # print("Get Time and Dist to Collision")
-    self._get_random_vehicle_time_and_dist_to_collision()
+    _collision_infos = self._get_random_vehicle_time_and_dist_to_collision()
+    self.collision_infos = sorted(_collision_infos, key=lambda d: d['time_to_collision'], reverse=False)
+    # print("collision_infos: ", self.collision_infos)
     
     # state information
     info = {
@@ -432,13 +435,13 @@ class CarlaEnv(gym.Env):
   
   def _get_time_to_collision(self, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
     if len(self.ego.trajectory) < 2 or len(vehicle.trajectory) < 2:
-      return {"id": vehicle.id, "time_to_collision": max_time, "dist_to_collision": max_dist} 
+      return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
         
     is_exist, _ = get_intersection_dist(self.ego.trajectory[0], self.ego.trajectory[-1], vehicle.trajectory[0], vehicle.trajectory[-1])    
     # print("---------------------------------------------------")
     # print("ego id: ", self.ego.id, " ego_speed: ", get_speed(self.ego)/3.6, " vehicle id: ", vehicle.id, " vehicle_speed: ", get_speed(vehicle)/3.6, " inter_exist: ", is_exist)
     if not is_exist:
-      return {"id": vehicle.id, "time_to_collision": max_time, "dist_to_collision": max_dist}
+      return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist}
     
     speed = get_speed(vehicle) / 3.6
     buf_span = int(buf_t / self.pred_dt)
@@ -478,7 +481,7 @@ class CarlaEnv(gym.Env):
     time_to_collision = min(time_to_collision, max_time)
     dist_to_collision = min(dist_to_collision, max_dist)
     
-    return {"id": vehicle.id, "time_to_collision": time_to_collision, "dist_to_collision": dist_to_collision} 
+    return {"id": vehicle.id, "time_to_collision": time_to_collision / max_time, "dist_to_collision": dist_to_collision / max_dist}
   
   def _apply_random_vehicle_control(self):
     for vehicle in self.vehicles:

@@ -33,7 +33,9 @@ class RoundAboutEnv(CarlaEnv):
     super(RoundAboutEnv, self).__init__(params)
     # parameters
     self.task_mode = params['task_mode']
-    self.max_time_episode = params['max_time_episode']
+    self.max_time_episode = params['max_time_episode']    
+    # self.number_of_detections = params['number_of_detections']
+    self.number_of_detections = 3
 
     # Destination
     if params['task_mode'] == 'roundabout':
@@ -57,7 +59,7 @@ class RoundAboutEnv(CarlaEnv):
     
     # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     # self.observation_space = spaces.Dict(observation_space_dict)
-    self.observation_space = spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)
+    self.observation_space = spaces.Box(np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), dtype=np.float32)
 
   def _get_obs(self):
     """Get the observations."""
@@ -72,8 +74,21 @@ class RoundAboutEnv(CarlaEnv):
       np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
     v = self.ego.get_velocity()
     speed = np.sqrt(v.x**2 + v.y**2)
+      
     state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
 
+    time_to_collisions, dist_to_collisions = np.ones(3), np.ones(3)
+    if self.collision_infos:
+      for i in range(min(len(self.collision_infos), self.number_of_detections)):
+        time_to_collisions[i] = self.collision_infos[i]['time_to_collision']
+        dist_to_collisions[i] = self.collision_infos[i]['dist_to_collision']
+      
+    # print("state: ", state)
+    # print("time_to_collisions: ", time_to_collisions)
+    # print("dist_to_collisions: ", dist_to_collisions)
+    state = np.concatenate((state, time_to_collisions, dist_to_collisions))
+    # print("concat_state: ", state)
+    
     # obs = {'state': state,}
     # return obs
     return state
