@@ -145,7 +145,7 @@ class CarlaEnv(gym.Env):
         time.sleep(0.1)
         
     self._set_ego_vehicle_path()
-    self._set_vehicle_waypoints_and_trajectory()
+    # self._set_vehicle_waypoints_and_trajectory()
     
     # print("ego_location: ", self.ego.get_location())
     # for i, vehicle in enumerate(self.vehicles):
@@ -178,7 +178,8 @@ class CarlaEnv(gym.Env):
     ############################################################################
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
-    self._set_vehicle_waypoints_and_trajectory()
+    self._set_ego_vehicle_waypoints_and_trajectories()
+    self._set_random_vehicle_waypoints_and_trajectories()
     
     # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
@@ -227,7 +228,9 @@ class CarlaEnv(gym.Env):
     # route planner
     # print("Set All Vehicle Waypoints and Trajectories")
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    self._set_vehicle_waypoints_and_trajectory()
+    # self._set_vehicle_waypoints_and_trajectory()
+    self._set_ego_vehicle_waypoints_and_trajectories()
+    self._set_random_vehicle_waypoints_and_trajectories()
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
     # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
@@ -487,19 +490,18 @@ class CarlaEnv(gym.Env):
     else:
       raise NotImplementedError
 
-  def _set_vehicle_waypoints_and_trajectory(self, max_t=5.0):
-    # print("===================================================")
-    # print("===================================================")
-    # print("Ego Vechie: ", self.ego.id, " speed: ", get_speed(self.ego) / 3.6, " Ego Location: ", self.ego.get_location())
-    self.ego.set_trajectory(max_t=max_t)
-    # print("Ego Traj: ", self.ego.trajectory)
+  def _set_ego_vehicle_waypoints_and_trajectories(self):
+    raise NotImplementedError
+  
+  def _set_random_vehicle_waypoints_and_trajectories(self):
+    # self.ego.set_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
-      vehicle.set_trajectory(max_t=max_t)
-      # print("---------------------------------------------------")
-      # print("Vehicle: ", vehicle.id, " speed: ", get_speed(vehicle) / 3.6, " Location: ", vehicle.get_location())
-      # print("Traj: ", vehicle.trajectory)
+      vehicle.set_trajectory(max_t=self.pred_time)
       
   def _get_random_vehicle_time_and_dist_to_collision(self):
+    if self.ego.trajectories is None:
+      raise NotImplementedError
+    
     collisions_list = []
     for trajectory in self.ego.trajectories:
       collisions = []
