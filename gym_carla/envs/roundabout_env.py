@@ -98,36 +98,15 @@ class RoundAboutEnv(CarlaEnv):
     # reward for speed tracking
     v = self.ego.get_velocity()
     speed = np.sqrt(v.x**2 + v.y**2)
-    r_speed = -abs(speed - self.desired_speed)
+    # r_speed = -abs(speed - self.desired_speed)
+    r_speed = min(1.0, speed / self.desired_speed)
     
     # reward for collision
     r_collision = 0
-    if len(self.collision_hist) > 0:
+    if len(self.collision_hist) > 0 or self.collision_infos[0]['time_to_collision'] <= (1.0 / self.pred_time):
       r_collision = -1
 
-    # reward for steering:
-    r_steer = -self.ego.get_control().steer**2
-
-    # reward for out of lane
-    ego_x, ego_y = get_pos(self.ego)
-    dis, w = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
-    r_out = 0
-    if abs(dis) > self.out_lane_thres:
-      r_out = -1
-
-    # longitudinal speed
-    lspeed = np.array([v.x, v.y])
-    lspeed_lon = np.dot(lspeed, w)
-
-    # cost for too fast
-    r_fast = 0
-    if lspeed_lon > self.desired_speed:
-      r_fast = -1
-
-    # cost for lateral acceleration
-    r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
-
-    r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
+    r = 10*r_collision + 1*r_speed
 
     return r
 
