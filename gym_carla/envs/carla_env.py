@@ -34,6 +34,7 @@ class CarlaEnv(gym.Env):
     self.max_past_step = params['max_past_step']
     self.number_of_vehicles = params['number_of_vehicles']
     self.dt = params['dt']
+    self.pred_dt = self.dt * 10.0
     self.max_waypt = params['max_waypt']
     self.obs_range = params['obs_range']
     self.d_behind = params['d_behind']
@@ -81,19 +82,17 @@ class CarlaEnv(gym.Env):
     self.total_step = 0
     
   def reset(self):
-    # Clear sensor objects  
+    # Clear sensor objects
     if self.collision_sensor is not None:
       self.collision_sensor.stop()
       self.collision_sensor.destroy()
     self.collision_sensor = None
-
     self._clear_all_vehicles()
     self.vehicles = []
     
     # Delete sensors, vehicles and walkers
     # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
     # self._clear_all_actors(['vehicle.*'])
-
     # Disable sync mode
     self._set_synchronous_mode(False)
     # Spawn surrounding vehicles
@@ -101,12 +100,17 @@ class CarlaEnv(gym.Env):
     count = self.number_of_vehicles
     if count > 0:
       for spawn_point in self.vehicle_spawn_points:
+        # if np.linalg.norm([spawn_point.location.x - 52.1, spawn_point.location.y - 4.2]) < 10.0:
+          # continue
         if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
           count -= 1
         if count <= 0:
           break
     while count > 0:
-      if self._try_spawn_random_vehicle_at(random.choice(self.vehicle_spawn_points), number_of_wheels=[4]):
+      spawn_point = random.choice(self.vehicle_spawn_points)
+      # if np.linalg.norm([spawn_point.location.x - 52.1, spawn_point.location.y - 4.2]) < 10.0:
+      #     continue
+      if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
         count -= 1
 
     self._set_random_vehicle_paths()
@@ -137,6 +141,10 @@ class CarlaEnv(gym.Env):
         
     self._set_ego_vehicle_path()
     self._set_vehicle_waypoints_and_trajectory()
+    
+    # print("ego_location: ", self.ego.get_location())
+    # for i, vehicle in enumerate(self.vehicles):
+    #   print("i: ", i, " vehicle location: ", vehicle.get_location())
 
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
@@ -155,19 +163,25 @@ class CarlaEnv(gym.Env):
     self.reset_step+=1
 
     # Enable sync mode
+    # print("Enable Sync Mode & Apply Settings")
     self.settings.synchronous_mode = True
     self.world.apply_settings(self.settings)
 
+    # print("Set All Vehicle Waypoints and Trajectories")
     # self.routeplanner = RoutePlanner(self.ego, self.max_waypt)
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
     ############################################################################
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
     self._set_vehicle_waypoints_and_trajectory()
+    
+    # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
     # print("self.waypoints: ", self.waypoints, " length: ", len(self.waypoints))
     # print("self.vehicle_front: ", self.vehicle_front)
     ############################################################################
+    
+    # print("Complete Reset")
     return self._get_obs()
   
   def step(self, action):
@@ -188,13 +202,17 @@ class CarlaEnv(gym.Env):
       brake = np.clip(-acc/8,0,1)
 
     # Apply control
+    # print("Apply Network Control to Ego Vehicle")
     act = carla.VehicleControl(throttle=float(throttle), steer=float(-steer), brake=float(brake))
     self.ego.apply_control(act)
+    
+    # print("Apply Analytic Control to Ego Vehicle")
     self._apply_random_vehicle_control()
 
     self.world.tick()
 
     # Append actors polygon list
+    # print("Append Actors Polygon List")
     # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
     vehicle_poly_dict = self._get_vehicle_polygons()
     self.vehicle_polygons.append(vehicle_poly_dict)
@@ -202,11 +220,16 @@ class CarlaEnv(gym.Env):
       self.vehicle_polygons.pop(0)
 
     # route planner
+    # print("Set All Vehicle Waypoints and Trajectories")
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
     self._set_vehicle_waypoints_and_trajectory()
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
+    # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
 
+    # print("Get Time and Dist to Collision")
+    # self._get_random_vehicle_time_and_dist_to_collision()
+    
     # state information
     info = {
       'waypoints': self.ego.waypoints,
@@ -276,7 +299,7 @@ class CarlaEnv(gym.Env):
     vehicle = self.world.try_spawn_actor(blueprint, transform)
     if vehicle is not None:
       # vehicle.set_autopilot()
-      vehicle = SafeAgent(vehicle, behavior="normal", dt=self.dt, target_speed=20.0)
+      vehicle = SafeAgent(vehicle, behavior="normal", dt=self.pred_dt, target_speed=20.0)
       self.vehicles.append(vehicle)
       return True
     return False
@@ -305,7 +328,7 @@ class CarlaEnv(gym.Env):
       vehicle = self.world.try_spawn_actor(self.ego_bp, transform)
 
     if vehicle is not None:
-      self.ego=SafeAgent(vehicle, behavior="normal", dt=self.dt, target_speed=20.0)
+      self.ego=SafeAgent(vehicle, behavior="normal", dt=self.pred_dt, target_speed=20.0)
       return True
       
     return False
@@ -372,9 +395,9 @@ class CarlaEnv(gym.Env):
         # print("self.dests: ", self.dests)  # [[x,y,z], [x,y,z], [x,y,z], ..., [x,y,z]]
         _dest = random.choice(self.dests)
         # vehicle.set_destination(random.choice(self.dests))
-        vehicle.set_destination(carla.Location(_dest[0], _dest[1], _dest[2]))
-        # print("vehicle.id: ", vehicle._vehicle.id)
-        # print("vehicle.local_planner._waypoints_queue: ", vehicle.local_planner._waypoints_queue)
+        vehicle.set_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
+        # print("vehicle.id: ", vehicle._vehicle.id, " location: ", vehicle.get_location(), "destinaiton: ", _dest)
+        # print("vehicle.local_planner.get_waypoints(): ", vehicle.local_planner.get_waypoints())
         # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
     else:
       raise NotImplementedError
@@ -382,16 +405,76 @@ class CarlaEnv(gym.Env):
   def _set_ego_vehicle_path(self):
     if self.ego is not None and self.dests is not None: 
       _dest = random.choice(self.dests)
-      self.ego.set_destination(carla.Location(_dest[0], _dest[1], _dest[2]))
+      self.ego.set_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
 
-  def _set_vehicle_waypoints_and_trajectory(self, max_dist=80.0, max_time=5.0):
-    print("self.ego: ", self.ego, " speed: ", get_speed(self.ego) / 3.6)
-    self.ego.set_trajectory(max_t=2.0)
+  def _set_vehicle_waypoints_and_trajectory(self, max_t=5.0):
+    # print("---------------------------------------------------")
+    print("===================================================")
+    print("===================================================")
+    print("Ego Vechiel: ", self.ego.id, " speed: ", get_speed(self.ego) / 3.6, " Ego Location: ", self.ego.get_location())
+    self.ego.set_trajectory(max_t=max_t)
+    print("Ego Traj: ", self.ego.trajectory)
     for vehicle in self.vehicles:
-      print("vehicle: ", vehicle, " speed: ", get_speed(vehicle) / 3.6)
-      vehicle.set_trajectory(max_t=2.0)
+      print("---------------------------------------------------")
+      print("Vehicle: ", vehicle.id, " speed: ", get_speed(vehicle) / 3.6, " Location: ", vehicle.get_location())
+      vehicle.set_trajectory(max_t=max_t)
+      print("Traj: ", vehicle.trajectory)
+      
+  def _get_random_vehicle_time_and_dist_to_collision(self):
+    collisions = []
+    for vehicle in self.vehicles:
+      if vehicle.is_alive:
+        collision = self._get_time_to_collision(vehicle)
+        collisions.append(collision)
+        
+    return collisions
+  
+  def _get_time_to_collision(self, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
+    print("---------------------------------------------------")
+    is_exist, _ = get_intersection_dist(self.ego.trajectory[0], self.ego.trajectory[-1], vehicle.trajectory[0], vehicle.trajectory[-1])    
+    print("ego id: ", self.ego.id, " ego_speed: ", get_speed(self.ego)/3.6, " vehicle id: ", vehicle.id, " vehicle_speed: ", get_speed(vehicle)/3.6, " inter_exist: ", is_exist)
+    if not is_exist:
+      return {"id": vehicle.id, "time_to_collision": max_time, "dist_to_collision": max_dist}
+    
+    speed = get_speed(vehicle) / 3.6
+    buf_span = int(buf_t / self.pred_dt)
+    traj_len = len(vehicle.trajectory)
+    traj_gap = speed * self.pred_dt
+    
+    dist_to_collision = 0.0    
+    for i in range(len(self.ego.trajectory)-1):
+      min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span)
+      print("---------------------------------------------------")
+      print("ego_locatoin: ", self.ego.get_location(), " vehicle_location: ", vehicle.get_location())
+      print("i: ", i, " min_idx: ", min_idx, " max_idx: ", max_idx)
+      print("ego[i]: ", self.ego.trajectory[i])
+      print("ego[i+1]: ", self.ego.trajectory[i+1])
+      print("---------------------------------------------------")
+      for k in range(min_idx, max_idx-1):        
+        collision_exist, collision_dist = get_intersection_dist(self.ego.trajectory[i], self.ego.trajectory[i+1], vehicle.trajectory[k], vehicle.trajectory[k+1])                
+        print("k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist)
+        print("vehicle[k]: ", vehicle.trajectory[k])
+        print("vehicle.trajectory[k+1]: ", vehicle.trajectory[k+1])
+        if collision_exist:
+          break
+      
+      print("---------------------------------------------------")            
+      if collision_exist:
+        dist_to_collision += collision_dist
+        print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
+        break
+      else:
+        # dist_to_collsion += np.linalg.norm([self.ego.trajectory[i][0] - self.ego.trajectory[i+1][0], self.ego.trajectory[i][1] - self.ego.trajectory[i+1][1]])
+        dist_to_collision += traj_gap
+        print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
+    
+    time_to_collision = dist_to_collision / speed    
+    time_to_collision = min(time_to_collision, max_time)
+    dist_to_collision = min(dist_to_collision, max_dist)
+    
+    return {"id": vehicle.id, "time_to_collision": time_to_collision, "dist_to_collision": dist_to_collision} 
   
   def _apply_random_vehicle_control(self):
     for vehicle in self.vehicles:
