@@ -183,13 +183,13 @@ class SafeAgent(Agent):
     def set_waypoints(self, length=50):
         self.waypoints = self.local_planner.get_waypoints(length)
         
-    def set_trajectory(self, length=50, max_t=2.0):
+    def get_trajectory(self, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
         speed = get_speed(self._vehicle) / 3.6
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
         
-        self.set_waypoints(length)
+        # self.set_waypoints(length)
         if not self.waypoints:
             self.trajectory = []
             return
