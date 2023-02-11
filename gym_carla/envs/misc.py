@@ -13,9 +13,10 @@ import math
 import numpy as np
 import carla
 import pygame
-from matplotlib.path import Path
 import skimage
 
+from matplotlib.path import Path
+from shapely.geometry import LineString, Point
 
 def get_speed(vehicle):
   """
@@ -249,3 +250,36 @@ def rgb_to_display_surface(rgb, display_size):
   pygame.surfarray.blit_array(surface, display)
   return surface
 
+def get_intersection_point(wp1, wp2, wp3, wp4):
+  """
+  wp: waypoint composed of (x, y, yaw)
+  """
+  line1 = LineString([wp1[:2], wp2[:2]])
+  line2 = LineString([wp3[:2], wp4[:2]])
+
+  int_pt = line1.intersection(line2)
+  if int_pt.is_empty:
+    return False, []
+
+  return True, [int_pt.x, int_pt.y, wp1[2]]
+
+def get_intersection_dist(wp1, wp2, wp3, wp4):
+  """
+  wp: waypoint composed of (x, y, yaw)
+  """
+  line1 = LineString([wp1[:2], wp2[:2]])
+  line2 = LineString([wp3[:2], wp4[:2]])
+
+  int_pt = line1.intersection(line2)
+  if int_pt.is_empty:
+    return False, None
+
+  inter_dist = np.linalg.norm([int_pt.x - wp1[0], int_pt.y - wp1[1]])
+  
+  # print("wp1: ", wp1)
+  # print("wp2: ", wp2)
+  # print("wp3: ", wp3)
+  # print("wp4: ", wp4)
+  # print("int_pt: ", int_pt.x, " ", int_pt.y)
+  # print("inter_dist: ", inter_dist)
+  return True, inter_dist
