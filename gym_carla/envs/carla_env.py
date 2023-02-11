@@ -236,7 +236,7 @@ class CarlaEnv(gym.Env):
     self.vehicle_front =  self.ego.detect_hazard()
 
     # print("Get Time and Dist to Collision")
-    _collision_infos = self._get_random_vehicle_time_and_dist_to_collision()
+    _collision_infos = self._get_time_and_dist_to_collisions()
     self.collision_infos = sorted(_collision_infos, key=lambda d: d['time_to_collision'], reverse=False)
     # print("collision_infos: ", self.collision_infos)
     
@@ -498,7 +498,7 @@ class CarlaEnv(gym.Env):
     for vehicle in self.vehicles:
       vehicle.set_trajectory(max_t=self.pred_time)
       
-  def _get_random_vehicle_time_and_dist_to_collision(self):
+  def _get_time_and_dist_to_collisions(self):
     if self.ego.trajectories is None:
       raise NotImplementedError
     
@@ -507,14 +507,14 @@ class CarlaEnv(gym.Env):
       collisions = []
       for vehicle in self.vehicles:
         if vehicle.is_alive:
-          collision = self._get_time_to_collision(trajectory, vehicle, max_time=self.pred_time)
+          collision = self._get_time_and_dist_to_collision(trajectory, vehicle, max_time=self.pred_time)
           collisions.append(collision)
           
       collisions_list.append(collisions)
                 
     return collisions_list
   
-  def _get_time_to_collision(self, trajectory, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
+  def _get_time_and_dist_to_collision(self, trajectory, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
     if len(trajectory) < 2 or len(vehicle.trajectory) < 2:
       return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
         
