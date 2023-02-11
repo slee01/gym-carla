@@ -499,26 +499,26 @@ class CarlaEnv(gym.Env):
       vehicle.set_trajectory(max_t=self.pred_time)
       
   def _get_time_and_dist_to_collisions(self):
-    if self.ego.trajectories is None:
+    if self.ego.cand_trajs is None:
       raise NotImplementedError
     
     collisions_list = []
-    for trajectory in self.ego.trajectories:
+    for cand_traj in self.ego.cand_trajs:
       collisions = []
       for vehicle in self.vehicles:
         if vehicle.is_alive:
-          collision = self._get_time_and_dist_to_collision(trajectory, vehicle, max_time=self.pred_time)
+          collision = self._get_time_and_dist_to_collision(cand_traj, vehicle, max_time=self.pred_time)
           collisions.append(collision)
           
       collisions_list.append(collisions)
                 
     return collisions_list
   
-  def _get_time_and_dist_to_collision(self, trajectory, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
-    if len(trajectory) < 2 or len(vehicle.trajectory) < 2:
+  def _get_time_and_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
+    if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
       return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
         
-    is_exist, _ = get_intersection_dist(trajectory[0], trajectory[-1], vehicle.trajectory[0], vehicle.trajectory[-1])    
+    is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_traj[0], vehicle.pred_traj[-1])    
     # print("---------------------------------------------------")
     # print("ego id: ", self.ego.id, " ego_speed: ", get_speed(self.ego)/3.6, " vehicle id: ", vehicle.id, " vehicle_speed: ", get_speed(vehicle)/3.6, " inter_exist: ", is_exist)
     if not is_exist:
@@ -526,25 +526,25 @@ class CarlaEnv(gym.Env):
     
     speed = get_speed(vehicle) / 3.6
     buf_span = int(buf_t / self.pred_dt)
-    traj_len = len(vehicle.trajectory)
+    traj_len = len(vehicle.pred_traj)
     
     # traj_gap = speed * self.pred_dt
-    traj_gap = np.linalg.norm([trajectory[0][0] - trajectory[1][0], trajectory[0][1] - trajectory[1][1]])
+    traj_gap = np.linalg.norm([cand_traj[0][0] - cand_traj[1][0], cand_traj[0][1] - cand_traj[1][1]])
     
     dist_to_collision = 0.0    
-    for i in range(len(trajectory)-1):
+    for i in range(len(cand_traj)-1):
       min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span)
       # print("---------------------------------------------------")
       # print("ego_locatoin: ", self.ego.get_location(), " vehicle_location: ", vehicle.get_location())
       # print("i: ", i, " min_idx: ", min_idx, " max_idx: ", max_idx)
-      # print("ego[i]: ", trajectory[i])
-      # print("ego[i+1]: ", trajectory[i+1])
+      # print("ego[i]: ", cand_traj[i])
+      # print("ego[i+1]: ", cand_traj[i+1])
       # print("---------------------------------------------------")
       for k in range(min_idx, max_idx-1):        
-        collision_exist, collision_dist = get_intersection_dist(trajectory[i], trajectory[i+1], vehicle.trajectory[k], vehicle.trajectory[k+1])                
+        collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_traj[k], vehicle.pred_traj[k+1])                
         # print("k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist)
-        # print("vehicle[k]: ", vehicle.trajectory[k])
-        # print("vehicle.trajectory[k+1]: ", vehicle.trajectory[k+1])
+        # print("vehicle[k]: ", vehicle.pred_traj[k])
+        # print("vehicle.pred_traj[k+1]: ", vehicle.pred_traj[k+1])
         if collision_exist:
           break
       
@@ -555,7 +555,7 @@ class CarlaEnv(gym.Env):
         break
       else:        
         dist_to_collision += traj_gap
-        # dist_to_collsion += np.linalg.norm([trajectory[i][0] - trajectory[i+1][0], trajectory[i][1] - trajectory[i+1][1]])
+        # dist_to_collsion += np.linalg.norm([cand_traj[i][0] - cand_traj[i+1][0], cand_traj[i][1] - cand_traj[i+1][1]])
         # print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
     
     time_to_collision = dist_to_collision / speed    

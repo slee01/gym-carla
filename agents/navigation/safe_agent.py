@@ -126,7 +126,7 @@ class SafeAgent(Agent):
         self._lights_map = {}  # Dictionary mapping a traffic light to a wp corrspoing to its trigger volume location
 
         # Set trajectory extracted from waypoints
-        self.trajectory = None
+        self.cand_trajs, self.pred_trajs = None, None
         
     # def add_emergency_stop(self, control):
     #     """
