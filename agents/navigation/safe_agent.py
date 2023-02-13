@@ -52,6 +52,7 @@ class SafeAgent(Agent):
         self._ignore_vehicles = False
         self._use_bbs_detection = False
         self._target_speed = target_speed
+        self._min_speed = 5.0
         self._sampling_resolution = 2.0
         self._base_tlight_threshold = 5.0  # meters
         self._base_vehicle_threshold = 5.0  # meters
@@ -833,7 +834,7 @@ class SafeAgent(Agent):
         """
         if waypoint_type is None:
             raise NotImplementedError
-            
+
         ego_speed = get_speed(self._vehicle)
         _ego_speed_limit = self.get_speed_limit()
         delta_v = max(1, (ego_speed - front_speed) / 3.6)
@@ -841,31 +842,26 @@ class SafeAgent(Agent):
 
         # Under safety time distance, slow down.
         if self._behavior.safety_time > ttc > 0.0:
-            target_speed = min([
-                positive(front_speed - self._behavior.speed_decrease),
-                self._behavior.max_speed,
-                _ego_speed_limit - self._behavior.speed_lim_dist])
-            self.local_planner.set_speed(target_speed)
-            control = self.local_planner.run_step(debug=debug)
-
+            target_speed = min([positive(front_speed - self._behavior.speed_decrease), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
         # Actual safety distance area, try to follow the speed of the vehicle in front.
         elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:
-            target_speed = min([
-                max(self._min_speed, front_speed),
-                self._behavior.max_speed,
-                _ego_speed_limit - self._behavior.speed_lim_dist])
-            self.local_planner.set_speed(target_speed)
-            control = self.local_planner.run_step(debug=debug)
-
+            target_speed = min([max(self._min_speed, front_speed), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
         # Normal behavior.
         else:
-            target_speed = min([
-                self._behavior.max_speed,
-                _ego_speed_limit - self._behavior.speed_lim_dist])
-            self.local_planner.set_speed(target_speed)
-            control = self.local_planner.run_step(debug=debug)
+            target_speed = min([self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
 
-        return control
+        GO_SPEED_LIMIT, STOP_SPEED_LIMIT = 10.0, 5.0
+        if waypoint_type == "GO" and target_speed < GO_SPEED_LIMIT:
+            target_speed = GO_SPEED_LIMIT
+        elif waypoint_type == "STOP" and target_speed > STOP_SPEED_LIMIT:
+            target_speed = max(5.0, target_speed - self._behavior.speed_delta)
+
+        if target_speed > ego_speed + self._behavior.speed_delta:
+            target_speed = ego_speed + self._behavior.speed_delta
+        elif target_speed < ego_speed - self._behavior.speed_delta:
+            target_speed = ego_speed - self._behavior.speed_delta
+
+        return target_speed
 
     # def car_following_control(self, front_vehicle, distance, debug=False):
     #     """
