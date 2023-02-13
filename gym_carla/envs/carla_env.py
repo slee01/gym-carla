@@ -237,7 +237,10 @@ class CarlaEnv(gym.Env):
 
     # print("Get Time and Dist to Collision")
     _collision_infos = self._get_time_and_dist_to_collisions()
-    self.collision_infos = sorted(_collision_infos, key=lambda d: d['time_to_collision'], reverse=False)
+    
+    self.collision_infos = []
+    for _collision_info in _collision_infos:
+      self.collision_infos.append(sorted(_collision_info, key=lambda d: d['time_to_collision'], reverse=False))
     # print("collision_infos: ", self.collision_infos)
     
     # state information
@@ -496,7 +499,7 @@ class CarlaEnv(gym.Env):
   def _set_random_vehicle_waypoints_and_trajectories(self):
     # self.ego.set_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
-      vehicle.set_trajectory(max_t=self.pred_time)
+      vehicle.pred_trajs = vehicle.get_trajectory(max_t=self.pred_time)
       
   def _get_time_and_dist_to_collisions(self):
     if self.ego.cand_trajs is None:
