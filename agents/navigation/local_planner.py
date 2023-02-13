@@ -14,7 +14,7 @@ import random, itertools, copy
 
 import carla
 from agents.navigation.controller import VehiclePIDController
-from agents.tools.misc import distance_vehicle, draw_waypoints, get_speed
+from agents.tools.misc import distance_vehicle, draw_waypoints, draw_points, get_speed
 
 
 class RoadOption(Enum):
@@ -100,17 +100,21 @@ class LocalPlanner(object):
         self._stop_waypoint_creation = False
 
         # Base parameters
-        self._dt = 1.0 / 20.0
+        # self._dt = 1.0 / 20.0
+        self._dt = 1.0 / 10.0
         self._target_speed = 20.0  # Km/h
         self._sampling_radius = 2.0
-        self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt}
-        self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
+        # self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.07, 'K_D': 0.2, 'dt': self._dt}
+        self._args_lateral_dict = {'K_P': 1.0, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
+        # self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
+        self._args_longitudinal_dict = {'K_P': 0.1, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
         self._max_throt = 0.75
         self._max_brake = 0.3
         self._max_steer = 0.8
         self._offset = 0
         self._base_min_distance = 3.0
-        self._distance_ratio = 0.5
+        # self._distance_ratio = 0.5
+        self._distance_ratio = 0.1
         self._follow_speed_limits = False
         self._speed_limit = 20.0  # Km/h
 
@@ -385,11 +389,11 @@ class LocalPlanner(object):
             control.hand_brake = False
             control.manual_gear_shift = False
         else:
-            target_waypoint = waypoints[0]
+            target_waypoint = waypoints['waypoints'][0]
             control = self._vehicle_controller.run_step(target_speed, target_waypoint)
 
         # if debug:
-            # draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+        draw_points(self._vehicle.get_world(), waypoints['waypoints'], self._vehicle.get_location().z + 1.0)
 
         return control
 
@@ -398,6 +402,7 @@ class LocalPlanner(object):
         veh_location = self._vehicle.get_location()
         vehicle_speed = get_speed(self._vehicle) / 3.6
         self._min_distance = self._base_min_distance + self._distance_ratio * vehicle_speed
+        # self._min_distance = self._base_min_distance
 
         num_waypoint_removed = 0
         for waypoint, _ in self._waypoints_queue:
