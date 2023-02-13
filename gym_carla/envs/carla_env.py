@@ -472,6 +472,13 @@ class CarlaEnv(gym.Env):
       vehicle_poly_dict[vehicle.id]=poly
     return vehicle_poly_dict
 
+  def _update_ego_vehicle_path(self):
+    if self.ego is not None and self.dests is not None: 
+      _dest = random.choice(self.dests)
+      self.ego.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
+    else:
+      raise NotImplementedError
+      
   def _update_random_vehicle_paths(self):
     if self.dests is not None: # If at destination
       for vehicle in self.vehicles:
@@ -485,20 +492,15 @@ class CarlaEnv(gym.Env):
     else:
       raise NotImplementedError
 
-  def _update_ego_vehicle_path(self):
-    if self.ego is not None and self.dests is not None: 
-      _dest = random.choice(self.dests)
-      self.ego.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
-    else:
-      raise NotImplementedError
-
   def _update_ego_vehicle_waypoints_and_trajectories(self):
     raise NotImplementedError
   
   def _update_random_vehicle_waypoints_and_trajectories(self):
     # self.ego.update_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
-      vehicle.pred_trajs = vehicle.get_trajectory(max_t=self.pred_time)
+      # vehicle.pred_trajs = vehicle.get_trajectory(max_t=self.pred_time)
+      vehicle.set_predicted_waypoints()
+      vehicle.set_predicted_trajectories(max_t=self.pred_time)
       
   def _set_time_and_dist_to_collisions(self):
     if self.ego.cand_trajs is None:

@@ -183,7 +183,7 @@ class SafeAgent(Agent):
 
     def set_candidate_waypoints(self, types=None, length=50):
         """
-        type: list of waypoint types such as LANEFOLLOW, LANECHANGE, STOP, and GO
+        type: list of waypoint types such as PREDICTION, LANEFOLLOW, LANECHANGE, STOP, and GO
         length: length of each waypoint
         """
         assert types != None, "Waypoint type should be determined."
