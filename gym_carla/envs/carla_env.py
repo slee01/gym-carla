@@ -189,7 +189,8 @@ class CarlaEnv(gym.Env):
     ############################################################################
     
     self._set_dist_to_collisions()
-    self._set_ego_vehicle_desired_speeds()
+    self._update_ego_vehicle_desired_speeds()
+    self._set_time_to_collisions()
     # print("Complete Reset")
     return self._get_obs()
   
@@ -244,7 +245,8 @@ class CarlaEnv(gym.Env):
       # self.collision_infos.append(sorted(_collision_info, key=lambda d: d['time_to_collision'], reverse=False))
     # self._set_time_and_dist_to_collisions()      
     self._set_dist_to_collisions()
-    self._set_ego_vehicle_desired_speeds()      
+    self._update_ego_vehicle_desired_speeds()
+    self._set_time_to_collisions()
     # print("collision_infos: ", self.collision_infos)
     
     # state information
@@ -462,7 +464,7 @@ class CarlaEnv(gym.Env):
       # Get x, y and yaw of the vehicle
       trans=vehicle.get_transform()
       x=trans.location.x
-      y=trans.location.y
+      y=trans.location.y    
       yaw=trans.rotation.yaw/180*np.pi
       # Get length and width
       bb=vehicle.bounding_box
@@ -523,7 +525,17 @@ class CarlaEnv(gym.Env):
       collisions = sorted(collisions, key=lambda d: d['dist_to_collision'], reverse=False)
       self.collision_infos.append(collisions)
 
-  def _set_time_to_collisions(self):
+  def _set_time_to_collisions(self):    
+    if not self.collision_infos:
+      raise NotImplementedError
+    
+    assert len(self.ego.desired_speeds) == len(self.collision_infos), "desired_speeds of ego vehicle and collision_infos should have same length."
+    
+    for i, collision_info in enumerate(self.collision_infos):
+      for j in range(len(collision_info)):
+        time_to_collision = collision_info[j]['dist_to_collision'] / (self.ego.desired_speeds[i] / 3.6)
+        collision_info[j]['time_to_collision'] = time_to_collision
+
     # if self.ego.cand_trajs is None:
     #   raise NotImplementedError
     
@@ -537,7 +549,6 @@ class CarlaEnv(gym.Env):
           
     #   collisions = sorted(collisions, key=lambda d: d['time_to_collision'], reverse=False)
     #   self.collision_infos.append(collisions)
-    raise NotImplementedError
 
   def _get_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
     if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
@@ -569,7 +580,7 @@ class CarlaEnv(gym.Env):
     dist_to_collision = min(dist_to_collision, max_dist)    
     return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": dist_to_collision}
     
-  def set_ego_vehicle_desired_speeds(self):
+  def _update_ego_vehicle_desired_speeds(self):
     assert len(self.ego.cand_trajs) == len(self.collision_infos), "candidate trajectories and collision_infos of ego vehicle should be equal."
     self.ego.desired_speeds = []
 
