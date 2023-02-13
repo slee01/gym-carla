@@ -118,7 +118,7 @@ class CarlaEnv(gym.Env):
       if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
         count -= 1
 
-    self._set_random_vehicle_paths()
+    self._update_random_vehicle_paths()
 
     # Get actors polygon list
     self.vehicle_polygons = []
@@ -144,8 +144,8 @@ class CarlaEnv(gym.Env):
         ego_spawn_times += 1
         time.sleep(0.1)
         
-    self._set_ego_vehicle_path()
-    # self._set_vehicle_waypoints_and_trajectory()
+    self._update_ego_vehicle_path()
+    # self._update_vehicle_waypoints_and_trajectory()
     
     # print("ego_location: ", self.ego.get_location())
     # for i, vehicle in enumerate(self.vehicles):
@@ -178,8 +178,8 @@ class CarlaEnv(gym.Env):
     ############################################################################
     # DEFINE WAYPOINTS AND VEHICLE_FRONT(HAZARD) HERE
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
-    self._set_ego_vehicle_waypoints_and_trajectories()
-    self._set_random_vehicle_waypoints_and_trajectories()
+    self._update_ego_vehicle_waypoints_and_trajectories()
+    self._update_random_vehicle_waypoints_and_trajectories()
     
     # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
@@ -228,9 +228,9 @@ class CarlaEnv(gym.Env):
     # route planner
     # print("Set All Vehicle Waypoints and Trajectories")
     # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    # self._set_vehicle_waypoints_and_trajectory()
-    self._set_ego_vehicle_waypoints_and_trajectories()
-    self._set_random_vehicle_waypoints_and_trajectories()
+    # self._update_vehicle_waypoints_and_trajectory()
+    self._update_ego_vehicle_waypoints_and_trajectories()
+    self._update_random_vehicle_waypoints_and_trajectories()
     # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
     # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
@@ -473,7 +473,7 @@ class CarlaEnv(gym.Env):
       vehicle_poly_dict[vehicle.id]=poly
     return vehicle_poly_dict
 
-  def _set_random_vehicle_paths(self):
+  def _update_random_vehicle_paths(self):
     if self.dests is not None: # If at destination
       for vehicle in self.vehicles:
         # print("self.dests: ", self.dests)  # [[x,y,z], [x,y,z], [x,y,z], ..., [x,y,z]]
@@ -486,17 +486,17 @@ class CarlaEnv(gym.Env):
     else:
       raise NotImplementedError
 
-  def _set_ego_vehicle_path(self):
+  def _update_ego_vehicle_path(self):
     if self.ego is not None and self.dests is not None: 
       _dest = random.choice(self.dests)
       self.ego.set_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
 
-  def _set_ego_vehicle_waypoints_and_trajectories(self):
+  def _update_ego_vehicle_waypoints_and_trajectories(self):
     raise NotImplementedError
   
-  def _set_random_vehicle_waypoints_and_trajectories(self):
+  def _update_random_vehicle_waypoints_and_trajectories(self):
     # self.ego.set_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
       vehicle.pred_trajs = vehicle.get_trajectory(max_t=self.pred_time)
