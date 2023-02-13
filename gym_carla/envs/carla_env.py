@@ -193,61 +193,28 @@ class CarlaEnv(gym.Env):
     self._set_time_to_collisions()
     # print("Complete Reset")
     return self._get_obs()
-  
+
   def step(self, action):
-    # Calculate acceleration and steering
-    if self.discrete:
-      acc = self.discrete_act[0][action//self.n_steer]
-      steer = self.discrete_act[1][action%self.n_steer]
-    else:
-      acc = action[0]
-      steer = action[1]
-
-    # Convert acceleration to throttle and brake
-    if acc > 0:
-      throttle = np.clip(acc/3,0,1)
-      brake = 0
-    else:
-      throttle = 0
-      brake = np.clip(-acc/8,0,1)
-
     # Apply control
-    # print("Apply Network Control to Ego Vehicle")
-    act = carla.VehicleControl(throttle=float(throttle), steer=float(-steer), brake=float(brake))
+    act = self.ego.local_planner.get_control(self.ego.desired_speeds[action], self.ego.cand_wpts[action])
     self.ego.apply_control(act)
-    
-    # print("Apply Analytic Control to Ego Vehicle")
     self._apply_random_vehicle_control()
 
     self.world.tick()
 
     # Append actors polygon list
-    # print("Append Actors Polygon List")
-    # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
     vehicle_poly_dict = self._get_vehicle_polygons()
     self.vehicle_polygons.append(vehicle_poly_dict)
     while len(self.vehicle_polygons) > self.max_past_step:
       self.vehicle_polygons.pop(0)
 
-    # route planner
-    # print("Set All Vehicle Waypoints and Trajectories")
-    # self.waypoints, _, self.vehicle_front = self.routeplanner.run_step()
-    # self._update_vehicle_waypoints_and_trajectory()
     self._update_ego_vehicle_waypoints_and_trajectories()
     self._update_random_vehicle_waypoints_and_trajectories()
-    # self.waypoints = self.ego.local_planner.get_waypoints(length=50)
-    # print("Detect Ego Vehicle Hazard")
     self.vehicle_front =  self.ego.detect_hazard()
 
-    # print("Get Time and Dist to Collision")
-    # self.collision_infos = []    
-    # for _collision_info in _collision_infos:
-      # self.collision_infos.append(sorted(_collision_info, key=lambda d: d['time_to_collision'], reverse=False))
-    # self._set_time_and_dist_to_collisions()      
     self._set_dist_to_collisions()
     self._update_ego_vehicle_desired_speeds()
     self._set_time_to_collisions()
-    # print("collision_infos: ", self.collision_infos)
     
     # state information
     info = {
@@ -263,84 +230,13 @@ class CarlaEnv(gym.Env):
 
   def _get_obs(self):
     raise NotImplementedError
-    # """Get the observations."""
-
-    # # State observation
-    # ego_trans = self.ego.get_transform()
-    # ego_x = ego_trans.location.x
-    # ego_y = ego_trans.location.y
-    # ego_yaw = ego_trans.rotation.yaw/180*np.pi
-    # lateral_dis, w = get_preview_lane_dis(self.ego.waypoints, ego_x, ego_y)
-    # delta_yaw = np.arcsin(np.cross(w, 
-    #   np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
-    # v = self.ego.get_velocity()
-    # speed = np.sqrt(v.x**2 + v.y**2)
-      
-    # state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
-    # return state
   
   def _get_reward(self):
     raise NotImplementedError
-    # """Calculate the step reward."""
-    # # reward for speed tracking
-    # v = self.ego.get_velocity()
-    # speed = np.sqrt(v.x**2 + v.y**2)
-    # r_speed = -abs(speed - self.desired_speed)
-    
-    # # reward for collision
-    # r_collision = 0
-    # if len(self.collision_hist) > 0:
-    #   r_collision = -1
-
-    # # reward for steering:
-    # r_steer = -self.ego.get_control().steer**2
-
-    # # reward for out of lane
-    # ego_x, ego_y = get_pos(self.ego)
-    # dis, w = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
-    # r_out = 0
-    # if abs(dis) > self.out_lane_thres:
-    #   r_out = -1
-
-    # # longitudinal speed
-    # lspeed = np.array([v.x, v.y])
-    # lspeed_lon = np.dot(lspeed, w)
-
-    # # cost for too fast
-    # r_fast = 0
-    # if lspeed_lon > self.desired_speed:
-    #   r_fast = -1
-
-    # # cost for lateral acceleration
-    # r_lat = - abs(self.ego.get_control().steer) * lspeed_lon**2
-
-    # r = 200*r_collision + 1*lspeed_lon + 10*r_fast + 1*r_out + r_steer*5 + 0.2*r_lat - 0.1
-
-    # return r
   
   def _terminal(self):
     raise NotImplementedError
-    # """Calculate whether to terminate the current episode."""
-    # # Get ego state
-    # ego_x, ego_y = get_pos(self.ego)
 
-    # # If collides
-    # if len(self.collision_hist)>0: 
-    #   return True
-    # # If reach maximum timestep
-    # if self.time_step>=self.max_time_episode:
-    #   return True
-    # # If at destination
-    # if self.dests is not None: # If at destination
-    #   for dest in self.dests:
-    #     if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
-    #       return True
-    # # If out of lane
-    # dis, _ = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
-    # if abs(dis) > self.out_lane_thres:
-    #   return True
-    # return False
-    
   def seed(self, seed=None):
     self.np_random, seed = seeding.np_random(seed)
     return [seed]
