@@ -196,10 +196,10 @@ class SafeAgent(Agent):
                 waypoints = self.local_planner.get_waypoints(length)
             self.cand_wpts.append({"type": type, "waypoints": waypoints})
 
-    # def set_predicted_waypoints(self, length=50):
-    #     self.pred_wpts = []
-    #     waypoints = self.local_planner.get_waypoints(length)
-    #     self.pred_wpts.append(waypoints)
+    def set_predicted_waypoints(self, length=50):
+        self.pred_wpts = []
+        waypoints = self.local_planner.get_waypoints(length)
+        self.pred_wpts.append(waypoints)
 
     def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
