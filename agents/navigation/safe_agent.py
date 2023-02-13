@@ -196,6 +196,44 @@ class SafeAgent(Agent):
                 waypoints = self.local_planner.get_waypoints(length)
             self.cand_wpts.append({"type": type, "waypoints": waypoints})
 
+    def set_candidate_trajectories(self, length=50, max_t=2.0):
+        """Set trajectory (self.trajectory) to follow"""
+        if self.cand_wpts is None:
+            raise NotImplementedError
+
+        if not self.cand_wpts:
+            return []
+
+        self.cand_trajs = []
+        traj_length = int(max_t / self._dt)
+        for candidate in self.cand_wpts:
+            type, waypoints = candidate.type, candidate.waypoints
+        
+            speed = get_speed(self._vehicle) / 3.6  # TODO: replace current speed with target speed
+            traj_gap = speed * self._dt
+        
+            trajectory = []
+            trajectory.append(waypoints[0])
+
+            left_dist, traj_count = 0.0, 0
+            for i in range(len(waypoints)-1):
+                left_dist += np.linalg.norm([waypoints[i][0]-waypoints[i+1][0], waypoints[i][1]-waypoints[i+1][1]])
+                wp_vec_x, wp_vec_y = math.cos(math.radians(waypoints[i][2])), math.sin(math.radians(waypoints[i][2]))
+                            
+                while left_dist >= traj_gap:                
+                    new_pt = [trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, self.pred_wpts[i][2]]
+                    left_dist -= traj_gap
+                    trajectory.append(new_pt)
+                    traj_count += 1
+                    
+                    if traj_count >= traj_length:
+                        break
+                
+                if traj_count >= traj_length:
+                    break
+                
+            self.cand_trajs.append(trajectory)
+
     def set_predicted_waypoints(self, length=50):
         self.pred_wpts = []
         waypoints = self.local_planner.get_waypoints(length)
@@ -209,15 +247,16 @@ class SafeAgent(Agent):
         if not self.pred_wpts:
             return []
 
+        self.pred_trajs = []
         speed = get_speed(self._vehicle) / 3.6            
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
 
         trajectory = []
-        trajectory.append(self.waypoints[0])
+        trajectory.append(self.pred_wpts[0])
 
         left_dist, traj_count = 0.0, 0
-        for i in range(len(self.waypoints)-1):
+        for i in range(len(self.pred_wpts)-1):
             left_dist += np.linalg.norm([self.pred_wpts[i][0]-self.pred_wpts[i+1][0], self.pred_wpts[i][1]-self.pred_wpts[i+1][1]])
             wp_vec_x, wp_vec_y = math.cos(math.radians(self.pred_wpts[i][2])), math.sin(math.radians(self.pred_wpts[i][2]))
                         
