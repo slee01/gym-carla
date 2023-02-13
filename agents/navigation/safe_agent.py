@@ -181,21 +181,26 @@ class SafeAgent(Agent):
         """Get method for protected member local planner"""
         return self._global_planner
 
-    def set_waypoints(self, types=None, length=50):
+    def set_candidate_waypoints(self, types=None, length=50):
         """
         type: list of waypoint types such as LANEFOLLOW, LANECHANGE, STOP, and GO
         length: length of each waypoint
         """
         assert types != None, "Waypoint type should be determined."
 
-        self.waypoints = []
+        self.cand_wpts = []
         for type in types:
             if type == "LANECHANGE":
                 waypoints = self.lane_change(direction="left", same_lane_time=0.0, other_lane_time=0.0, lane_change_time=2.0)
             else:
                 waypoints = self.local_planner.get_waypoints(length)
-            self.waypoints.append({"type": type, "waypoints": waypoints})
-        
+            self.cand_wpts.append({"type": type, "waypoints": waypoints})
+
+    # def set_predicted_waypoints(self, length=50):
+    #     self.pred_wpts = []
+    #     waypoints = self.local_planner.get_waypoints(length)
+    #     self.pred_wpts.append(waypoints)
+
     def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
         if waypoints is not None:
