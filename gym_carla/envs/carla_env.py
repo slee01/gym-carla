@@ -477,8 +477,8 @@ class CarlaEnv(gym.Env):
       for vehicle in self.vehicles:
         # print("self.dests: ", self.dests)  # [[x,y,z], [x,y,z], [x,y,z], ..., [x,y,z]]
         _dest = random.choice(self.dests)
-        # vehicle.set_destination(random.choice(self.dests))
-        vehicle.set_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
+        # vehicle.update_destination(random.choice(self.dests))
+        vehicle.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
         # print("vehicle.id: ", vehicle._vehicle.id, " location: ", vehicle.get_location(), "destinaiton: ", _dest)
         # print("vehicle.local_planner.get_waypoints(): ", vehicle.local_planner.get_waypoints())
         # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
@@ -488,7 +488,7 @@ class CarlaEnv(gym.Env):
   def _update_ego_vehicle_path(self):
     if self.ego is not None and self.dests is not None: 
       _dest = random.choice(self.dests)
-      self.ego.set_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
+      self.ego.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
 
@@ -496,7 +496,7 @@ class CarlaEnv(gym.Env):
     raise NotImplementedError
   
   def _update_random_vehicle_waypoints_and_trajectories(self):
-    # self.ego.set_trajectory(max_t=max_t)
+    # self.ego.update_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
       vehicle.pred_trajs = vehicle.get_trajectory(max_t=self.pred_time)
       

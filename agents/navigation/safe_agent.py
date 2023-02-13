@@ -127,6 +127,7 @@ class SafeAgent(Agent):
 
         # Set trajectory extracted from waypoints
         self.cand_trajs, self.pred_trajs = None, None
+        self.cand_wpts, self.pred_wpts = None, None
         
     # def add_emergency_stop(self, control):
     #     """
@@ -153,7 +154,7 @@ class SafeAgent(Agent):
         control.hand_brake = False
         return control
     
-    def set_target_speed(self, speed):
+    def update_target_speed(self, speed):
         """
         Changes the target speed of the agent
             :param speed (float): target speed in Km/h
@@ -161,7 +162,7 @@ class SafeAgent(Agent):
         self._target_speed = speed
         self.local_planner.set_speed(speed)
 
-    def follow_speed_limits(self, value=True):
+    def update_follow_speed_limits(self, value=True):
         """
         If active, the agent will dynamically change the target speed according to the speed limits
 
@@ -180,21 +181,38 @@ class SafeAgent(Agent):
         """Get method for protected member local planner"""
         return self._global_planner
 
-    def set_waypoints(self, length=50):
-        self.waypoints = self.local_planner.get_waypoints(length)
+    def update_waypoints(self, type=None, length=50):
+        """
         
-    def get_trajectory(self, length=50, max_t=2.0):
+        """
+        assert type != None, "Waypoint type should be determined."
+
+        waypoints = self.local_planner.get_waypoints(length)
+        self.waypoints.append(waypoints)
+
+        if type == "LANECHANGE":
+            waypoints = self.lane_change(direction="left", same_lane_time=0.0, other_lane_time=0.0, lane_change_time=2.0)
+            self.waypoints.append(waypoints)
+        
+    def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
-        speed = get_speed(self._vehicle) / 3.6
+        if waypoints is not None:
+            # TODO: use waypoints to make different candidate waypoints for LaneChange scenario
+            raise NotImplementedError
+        if speed is None:
+            speed = get_speed(self._vehicle) / 3.6
+            
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
         
         # self.set_waypoints(length)
-        if not self.waypoints:
-            self.trajectory = []
-            return
         
         trajectory = []
+        if not self.waypoints:
+            # self.trajectory = []
+            return trajectory
+        
+        # trajectory = []
         trajectory.append(self.waypoints[0])
         # print("=============================================================================")
         # print("traj_length: ", traj_length, " veh_speed: ", speed, " traj_gap: ", traj_gap)
@@ -222,12 +240,13 @@ class SafeAgent(Agent):
             if traj_count >= traj_length:
                 break
             
-        self.trajectory = trajectory
+        # self.trajectory = trajectory
         # print("waypoint: ", self.waypoints)
         # print("trajectory: ", self.trajectory)
+        return trajectory
     
-    # def set_destination(self, location):
-    def set_destination(self, end_location, start_location=None):
+    # def update_destination(self, location):
+    def update_destination(self, end_location, start_location=None):
         """
         This method creates a list of waypoints between a starting and ending location,
         based on the route returned by the global router, and adds it to the local planner.
@@ -261,7 +280,7 @@ class SafeAgent(Agent):
         self.local_planner.set_global_plan(route_trace, clean_queue=clean_queue)
         # assert route_trace
 
-    def set_global_plan(self, plan, stop_waypoint_creation=True, clean_queue=True):
+    def update_global_plan(self, plan, stop_waypoint_creation=True, clean_queue=True):
         """
         Adds a specific plan to the agent.
 
