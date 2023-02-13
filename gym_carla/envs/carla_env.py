@@ -239,7 +239,8 @@ class CarlaEnv(gym.Env):
     # self.collision_infos = []    
     # for _collision_info in _collision_infos:
       # self.collision_infos.append(sorted(_collision_info, key=lambda d: d['time_to_collision'], reverse=False))
-    self._set_time_and_dist_to_collisions()      
+    # self._set_time_and_dist_to_collisions()      
+    self._set_dist_to_collisions()      
     # print("collision_infos: ", self.collision_infos)
     
     # state information
@@ -478,7 +479,7 @@ class CarlaEnv(gym.Env):
       self.ego.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
       raise NotImplementedError
-      
+
   def _update_random_vehicle_paths(self):
     if self.dests is not None: # If at destination
       for vehicle in self.vehicles:
@@ -502,7 +503,7 @@ class CarlaEnv(gym.Env):
       vehicle.set_predicted_waypoints()
       vehicle.set_predicted_trajectories(max_t=self.pred_time)
       
-  def _set_time_and_dist_to_collisions(self):
+  def _set_dist_to_collisions(self):
     if self.ego.cand_trajs is None:
       raise NotImplementedError
     
@@ -511,62 +512,108 @@ class CarlaEnv(gym.Env):
       collisions = []
       for vehicle in self.vehicles:
         if vehicle.is_alive:
-          collision = self._get_time_and_dist_to_collision(cand_traj, vehicle, max_time=self.pred_time)
+          collision = self._get_dist_to_collision(cand_traj, vehicle, max_time=self.pred_time)
           collisions.append(collision)
           
-      collisions = sorted(collisions, key=lambda d: d['time_to_collision'], reverse=False)
+      collisions = sorted(collisions, key=lambda d: d['dist_to_collision'], reverse=False)
       self.collision_infos.append(collisions)
 
-  def _get_time_and_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
+  def _set_time_to_collisions(self):
+    # if self.ego.cand_trajs is None:
+    #   raise NotImplementedError
+    
+    # self.collision_infos = []
+    # for cand_traj in self.ego.cand_trajs:
+    #   collisions = []
+    #   for vehicle in self.vehicles:
+    #     if vehicle.is_alive:
+    #       collision = self._get_time_and_dist_to_collision(cand_traj, vehicle, max_time=self.pred_time)
+    #       collisions.append(collision)
+          
+    #   collisions = sorted(collisions, key=lambda d: d['time_to_collision'], reverse=False)
+    #   self.collision_infos.append(collisions)
+    raise NotImplementedError
+
+  def _get_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
     if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
-      return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
+      return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": max_dist}
         
     is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_traj[0], vehicle.pred_traj[-1])    
-    # print("---------------------------------------------------")
-    # print("ego id: ", self.ego.id, " ego_speed: ", get_speed(self.ego)/3.6, " vehicle id: ", vehicle.id, " vehicle_speed: ", get_speed(vehicle)/3.6, " inter_exist: ", is_exist)
     if not is_exist:
-      return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist}
+      return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": max_dist}
     
-    speed = get_speed(vehicle) / 3.6
     buf_span = int(buf_t / self.pred_dt)
-    traj_len = len(vehicle.pred_traj)
-    
-    # traj_gap = speed * self.pred_dt
+    traj_len = len(vehicle.pred_traj)    
     traj_gap = np.linalg.norm([cand_traj[0][0] - cand_traj[1][0], cand_traj[0][1] - cand_traj[1][1]])
     
     dist_to_collision = 0.0    
     for i in range(len(cand_traj)-1):
       min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span)
-      # print("---------------------------------------------------")
-      # print("ego_locatoin: ", self.ego.get_location(), " vehicle_location: ", vehicle.get_location())
-      # print("i: ", i, " min_idx: ", min_idx, " max_idx: ", max_idx)
-      # print("ego[i]: ", cand_traj[i])
-      # print("ego[i+1]: ", cand_traj[i+1])
-      # print("---------------------------------------------------")
       for k in range(min_idx, max_idx-1):        
         collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_traj[k], vehicle.pred_traj[k+1])                
-        # print("k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist)
-        # print("vehicle[k]: ", vehicle.pred_traj[k])
-        # print("vehicle.pred_traj[k+1]: ", vehicle.pred_traj[k+1])
         if collision_exist:
           break
       
       # print("---------------------------------------------------")            
       if collision_exist:
         dist_to_collision += collision_dist
-        # print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
         break
       else:        
         dist_to_collision += traj_gap
-        # dist_to_collsion += np.linalg.norm([cand_traj[i][0] - cand_traj[i+1][0], cand_traj[i][1] - cand_traj[i+1][1]])
-        # print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
     
-    time_to_collision = dist_to_collision / speed    
-    time_to_collision = min(time_to_collision, max_time)
-    dist_to_collision = min(dist_to_collision, max_dist)
-    
-    return {"id": vehicle.id, "time_to_collision": time_to_collision / max_time, "dist_to_collision": dist_to_collision / max_dist}
+    dist_to_collision = min(dist_to_collision, max_dist)    
+    return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": dist_to_collision}
   
+  # def _get_time_and_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
+  #   if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
+  #     return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
+        
+  #   is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_traj[0], vehicle.pred_traj[-1])    
+  #   # print("---------------------------------------------------")
+  #   # print("ego id: ", self.ego.id, " ego_speed: ", get_speed(self.ego)/3.6, " vehicle id: ", vehicle.id, " vehicle_speed: ", get_speed(vehicle)/3.6, " inter_exist: ", is_exist)
+  #   if not is_exist:
+  #     return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist}
+    
+  #   speed = get_speed(vehicle) / 3.6
+  #   buf_span = int(buf_t / self.pred_dt)
+  #   traj_len = len(vehicle.pred_traj)
+    
+  #   # traj_gap = speed * self.pred_dt
+  #   traj_gap = np.linalg.norm([cand_traj[0][0] - cand_traj[1][0], cand_traj[0][1] - cand_traj[1][1]])
+    
+  #   dist_to_collision = 0.0    
+  #   for i in range(len(cand_traj)-1):
+  #     min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span)
+  #     # print("---------------------------------------------------")
+  #     # print("ego_locatoin: ", self.ego.get_location(), " vehicle_location: ", vehicle.get_location())
+  #     # print("i: ", i, " min_idx: ", min_idx, " max_idx: ", max_idx)
+  #     # print("ego[i]: ", cand_traj[i])
+  #     # print("ego[i+1]: ", cand_traj[i+1])
+  #     # print("---------------------------------------------------")
+  #     for k in range(min_idx, max_idx-1):        
+  #       collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_traj[k], vehicle.pred_traj[k+1])                
+  #       # print("k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist)
+  #       # print("vehicle[k]: ", vehicle.pred_traj[k])
+  #       # print("vehicle.pred_traj[k+1]: ", vehicle.pred_traj[k+1])
+  #       if collision_exist:
+  #         break
+      
+  #     # print("---------------------------------------------------")            
+  #     if collision_exist:
+  #       dist_to_collision += collision_dist
+  #       # print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
+  #       break
+  #     else:        
+  #       dist_to_collision += traj_gap
+  #       # dist_to_collsion += np.linalg.norm([cand_traj[i][0] - cand_traj[i+1][0], cand_traj[i][1] - cand_traj[i+1][1]])
+  #       # print("i: ", i, " k: ", k, " collision_exist: ", collision_exist, " collision_dist: ", collision_dist, " dist_to_collision: ", dist_to_collision)
+    
+  #   time_to_collision = dist_to_collision / speed    
+  #   time_to_collision = min(time_to_collision, max_time)
+  #   dist_to_collision = min(dist_to_collision, max_dist)
+    
+  #   return {"id": vehicle.id, "time_to_collision": time_to_collision / max_time, "dist_to_collision": dist_to_collision / max_dist}
+
   def _apply_random_vehicle_control(self):
     for vehicle in self.vehicles:
       # print("=========================================================")
