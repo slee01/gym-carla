@@ -44,8 +44,10 @@ class CarlaEnv(gym.Env):
 
     # self.pred_dt = params['pred_dt']
     # self.pred_time = params['pred_time']
+    # self.pred_dist = params['pred_dist']
     self.pred_dt = self.dt * 10.0
     self.pred_time = 5.0
+    self.pred_dist = 80.0
     
     self.dests = None
     self.collision_infos = None
@@ -136,7 +138,8 @@ class CarlaEnv(gym.Env):
       if self.task_mode == 'random':
         transform = random.choice(self.vehicle_spawn_points)
       if self.task_mode == 'roundabout':
-        self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66] # random
+        # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66] # random
+        self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66] # random
         # self.start=[52.1,-4.2, 178.66] # static
         transform = set_carla_transform(self.start)
       if self._try_spawn_ego_vehicle_at(transform):
@@ -191,12 +194,15 @@ class CarlaEnv(gym.Env):
     self._set_dist_to_collisions()
     self._update_ego_vehicle_desired_speeds()
     self._set_time_to_collisions()
+    # self.ego.waypoints = self.ego.cand_wpts[0]['waypoints']
+
     # print("Complete Reset")
-    return self._get_obs()
+    return self._get_obs(action=0)
 
   def step(self, action):
     # Apply control
-    act = self.ego.local_planner.get_control(self.ego.desired_speeds[action], self.ego.cand_wpts[action])
+    action = 0
+    act = self.ego.local_planner.get_control(waypoints=self.ego.cand_wpts[action], target_speed=self.ego.desired_speeds[action])
     self.ego.apply_control(act)
     self._apply_random_vehicle_control()
 
@@ -215,10 +221,14 @@ class CarlaEnv(gym.Env):
     self._set_dist_to_collisions()
     self._update_ego_vehicle_desired_speeds()
     self._set_time_to_collisions()
-    
+    # self.ego.waypoints = self.ego.cand_wpts[action]['waypoints']
+
+    print("location: ", self.ego.get_location(), " speed: ", get_speed(self.ego))
+    print("control: ", act)
+    print("waypoints: ", self.ego.cand_wpts[0])
     # state information
     info = {
-      'waypoints': self.ego.waypoints,
+      'waypoints': self.ego.cand_wpts[0]['waypoints'],
       'vehicle_front': self.vehicle_front
     }
     
@@ -226,15 +236,16 @@ class CarlaEnv(gym.Env):
     self.time_step += 1
     self.total_step += 1
 
-    return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
+    # return (self._get_obs(), self._get_reward(), self._terminal(), copy.deepcopy(info))
+    return (self._get_obs(action=action), self._get_reward(action=action), self._terminal(action=action), copy.deepcopy(info))
 
-  def _get_obs(self):
+  def _get_obs(self, action=None):
     raise NotImplementedError
   
-  def _get_reward(self):
+  def _get_reward(self, action=None):
     raise NotImplementedError
   
-  def _terminal(self):
+  def _terminal(self, action=None):
     raise NotImplementedError
 
   def seed(self, seed=None):
@@ -429,7 +440,10 @@ class CarlaEnv(gym.Env):
     
     for i, collision_info in enumerate(self.collision_infos):
       for j in range(len(collision_info)):
-        time_to_collision = collision_info[j]['dist_to_collision'] / (self.ego.desired_speeds[i] / 3.6)
+        if collision_info[j]['dist_to_collision'] == self.pred_dist:
+          time_to_collision = self.pred_time
+        else:
+          time_to_collision = collision_info[j]['dist_to_collision'] / (self.ego.desired_speeds[i] / 3.6)
         collision_info[j]['time_to_collision'] = time_to_collision
 
     # if self.ego.cand_trajs is None:
@@ -447,22 +461,22 @@ class CarlaEnv(gym.Env):
     #   self.collision_infos.append(collisions)
 
   def _get_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
-    if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
-      return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": max_dist}
+    if len(cand_traj) < 2 or len(vehicle.pred_trajs) < 2:
+      return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
         
-    is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_traj[0], vehicle.pred_traj[-1])    
+    is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_trajs[0], vehicle.pred_trajs[-1])    
     if not is_exist:
-      return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": max_dist}
+      return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
     buf_span = int(buf_t / self.pred_dt)
-    traj_len = len(vehicle.pred_traj)    
+    traj_len = len(vehicle.pred_trajs)    
     traj_gap = np.linalg.norm([cand_traj[0][0] - cand_traj[1][0], cand_traj[0][1] - cand_traj[1][1]])
     
     dist_to_collision = 0.0    
     for i in range(len(cand_traj)-1):
       min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span)
       for k in range(min_idx, max_idx-1):        
-        collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_traj[k], vehicle.pred_traj[k+1])                
+        collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_trajs[k], vehicle.pred_trajs[k+1])                
         if collision_exist:
           break
       
@@ -474,7 +488,7 @@ class CarlaEnv(gym.Env):
         dist_to_collision += traj_gap
     
     dist_to_collision = min(dist_to_collision, max_dist)    
-    return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": dist_to_collision}
+    return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": dist_to_collision}
     
   def _update_ego_vehicle_desired_speeds(self):
     assert len(self.ego.cand_trajs) == len(self.collision_infos), "candidate trajectories and collision_infos of ego vehicle should be equal."

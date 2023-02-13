@@ -57,25 +57,25 @@ class RoundAboutEnv(CarlaEnv):
     #   params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
     #     
     self.action_types = ["GO", "STOP"]
-    self.number_of_detections = 3
+    self.number_of_detections = 1
     self.action_space = spaces.Discrete(len(self.action_types))
 
     # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     # self.observation_space = spaces.Dict(observation_space_dict)
     self.observation_space = spaces.Box(
-      np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 
-      np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), 
+      np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0]), 
+      np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0]), 
       dtype=np.float32)
   
-  def _get_obs(self):
+  def _get_obs(self, action=None):
     """Get the observations."""
 
     # State observation
     ego_trans = self.ego.get_transform()
     ego_x = ego_trans.location.x
     ego_y = ego_trans.location.y
-    ego_yaw = ego_trans.rotation.yaw/180*np.pi
-    lateral_dis, w = get_preview_lane_dis(self.ego.waypoints, ego_x, ego_y)
+    ego_yaw = ego_trans.rotation.yaw/180*np.pi 
+    lateral_dis, w = get_preview_lane_dis(self.ego.cand_wpts[action]['waypoints'], ego_x, ego_y)
     delta_yaw = np.arcsin(np.cross(w, 
       np.array(np.array([np.cos(ego_yaw), np.sin(ego_yaw)]))))
     v = self.ego.get_velocity()
@@ -86,11 +86,11 @@ class RoundAboutEnv(CarlaEnv):
     time_to_collisions = np.ones(len(self.action_types) * self.number_of_detections)
     dist_to_collisions = np.ones(len(self.action_types) * self.number_of_detections)
     if self.collision_infos:
-      for i in range(len(self.collision_infos)):
-        for j in range(min(len(self.collision_infos[i]), self.number_of_detections)):
-          index = i * len(self.collision_infos) + j
-          time_to_collisions[index] = self.collision_infos[i][j]['time_to_collision']
-          dist_to_collisions[index] = self.collision_infos[i][j]['dist_to_collision']
+      for i in range(self.number_of_detections):
+        for j in range(len(self.action_types)):
+          index = i * len(self.action_types) + j
+          time_to_collisions[index] = self.collision_infos[i][j]['time_to_collision'] / self.pred_time
+          dist_to_collisions[index] = self.collision_infos[i][j]['dist_to_collision'] / self.pred_dist
       
     # print("state: ", state)
     # print("time_to_collisions: ", time_to_collisions)
@@ -102,7 +102,7 @@ class RoundAboutEnv(CarlaEnv):
     # return obs
     return state
 
-  def _get_reward(self):
+  def _get_reward(self, action=None):
     """Calculate the step reward."""
     # reward for speed tracking
     v = self.ego.get_velocity()
@@ -112,14 +112,14 @@ class RoundAboutEnv(CarlaEnv):
     
     # reward for collision
     r_collision = 0
-    if len(self.collision_hist) > 0 or self.collision_infos[0]['time_to_collision'] <= (1.0 / self.pred_time):
+    if len(self.collision_hist) > 0 or self.collision_infos[action][0]['time_to_collision'] <= (1.0 / self.pred_time):
       r_collision = -1
 
     r = 10*r_collision + 1*r_speed
 
     return r
 
-  def _terminal(self):
+  def _terminal(self, action=None):
     """Calculate whether to terminate the current episode."""
     # Get ego state
     ego_x, ego_y = get_pos(self.ego)
@@ -133,10 +133,11 @@ class RoundAboutEnv(CarlaEnv):
     # If at destination
     if self.dests is not None: # If at destination
       for dest in self.dests:
-        if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
+        # if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
+        if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<10.0:
           return True
     # If out of lane
-    dis, _ = get_lane_dis(self.ego.waypoints, ego_x, ego_y)
+    dis, _ = get_lane_dis(self.ego.cand_wpts[action]['waypoints'], ego_x, ego_y)
     if abs(dis) > self.out_lane_thres:
       return True
     return False
