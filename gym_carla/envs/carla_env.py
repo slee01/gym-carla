@@ -188,6 +188,8 @@ class CarlaEnv(gym.Env):
     # print("self.vehicle_front: ", self.vehicle_front)
     ############################################################################
     
+    self._set_dist_to_collisions()
+    self._set_ego_vehicle_desired_speeds()
     # print("Complete Reset")
     return self._get_obs()
   
@@ -568,7 +570,12 @@ class CarlaEnv(gym.Env):
     return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": dist_to_collision}
     
   def set_ego_vehicle_desired_speeds(self):
-    self.collision_infos
+    assert len(self.ego.cand_trajs) == len(self.collision_infos), "candidate trajectories and collision_infos of ego vehicle should be equal."
+    self.ego.desired_speeds = []
+
+    for i, collision_info in enumerate(self.collision_infos):
+      desired_speed = self.ego.get_target_speed(front_dist=collision_info[0]['dist_to_collision'], front_speed=collision_info[0]['speed'], waypoint_type=self.action_types[i])
+      self.ego.desired_speeds.append(desired_speed)
 
   # def _get_time_and_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
   #   if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:

@@ -129,6 +129,7 @@ class SafeAgent(Agent):
         # Set trajectory extracted from waypoints
         self.cand_trajs, self.pred_trajs = None, None
         self.cand_wpts, self.pred_wpts = None, None
+        self.desired_speeds = None
         
     # def add_emergency_stop(self, control):
     #     """
