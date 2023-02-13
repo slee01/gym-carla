@@ -361,6 +361,38 @@ class LocalPlanner(object):
 
         return control
 
+    def get_control(self, waypoints, target_speed, debug=True):
+        """
+        Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
+        follow the waypoints trajectory.
+
+        :param debug: boolean flag to activate waypoints debugging
+        :return: control to be applied
+        """
+        # # current vehicle waypoint
+        # self._current_waypoint = self._map.get_waypoint(self._vehicle.get_location())
+        # # target waypoint
+        # self.target_waypoint, self.target_road_option = self._waypoint_buffer[0]
+        # # move using PID controllers
+        # control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
+
+        # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
+        if len(waypoints) == 0:
+            control = carla.VehicleControl()
+            control.steer = 0.0
+            control.throttle = 0.0
+            control.brake = 1.0
+            control.hand_brake = False
+            control.manual_gear_shift = False
+        else:
+            target_waypoint = waypoints[0]
+            control = self._vehicle_controller.run_step(target_speed, target_waypoint)
+
+        # if debug:
+            # draw_waypoints(self._vehicle.get_world(), [self.target_waypoint], self._vehicle.get_location().z + 1.0)
+
+        return control
+
     def purge_deprecated_waypoints(self):
         # purge the queue of obsolete waypoints
         veh_location = self._vehicle.get_location()
