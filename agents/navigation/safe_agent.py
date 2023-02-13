@@ -201,45 +201,31 @@ class SafeAgent(Agent):
         waypoints = self.local_planner.get_waypoints(length)
         self.pred_wpts.append(waypoints)
 
-    def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
+    def set_predicted_trajectories(self, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
-        if waypoints is not None:
-            # TODO: use waypoints to make different candidate waypoints for LaneChange scenario
+        if self.pred_wpts is None:
             raise NotImplementedError
-        if speed is None:
-            speed = get_speed(self._vehicle) / 3.6
-            
+
+        if not self.pred_wpts:
+            return []
+
+        speed = get_speed(self._vehicle) / 3.6            
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
-        
-        # self.set_waypoints(length)
-        
+
         trajectory = []
-        if not self.waypoints:
-            # self.trajectory = []
-            return trajectory
-        
-        # trajectory = []
         trajectory.append(self.waypoints[0])
-        # print("=============================================================================")
-        # print("traj_length: ", traj_length, " veh_speed: ", speed, " traj_gap: ", traj_gap)
-        left_dist = 0.0
-        traj_count = 0
+
+        left_dist, traj_count = 0.0, 0
         for i in range(len(self.waypoints)-1):
-            left_dist += np.linalg.norm([self.waypoints[i][0]-self.waypoints[i+1][0], self.waypoints[i][1]-self.waypoints[i+1][1]])
-            wp_vec_x, wp_vec_y = math.cos(math.radians(self.waypoints[i][2])), math.sin(math.radians(self.waypoints[i][2]))
+            left_dist += np.linalg.norm([self.pred_wpts[i][0]-self.pred_wpts[i+1][0], self.pred_wpts[i][1]-self.pred_wpts[i+1][1]])
+            wp_vec_x, wp_vec_y = math.cos(math.radians(self.pred_wpts[i][2])), math.sin(math.radians(self.pred_wpts[i][2]))
                         
             while left_dist >= traj_gap:                
-                new_pt = [
-                    trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, self.waypoints[i][2]]
+                new_pt = [trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, self.pred_wpts[i][2]]
                 left_dist -= traj_gap
                 trajectory.append(new_pt)
                 traj_count += 1
-                # print("-----------------------------------------------------------------------------")
-                # print("i: ", i, " left_dist: ", left_dist, " traj_count: ", traj_count)
-                # print("way_pt[i]: ", self.waypoints[i])
-                # print("way_pt[i+1]: ", self.waypoints[i+1])
-                # print("new_pt: ", new_pt)
                 
                 if traj_count >= traj_length:
                     break
@@ -247,10 +233,58 @@ class SafeAgent(Agent):
             if traj_count >= traj_length:
                 break
             
-        # self.trajectory = trajectory
-        # print("waypoint: ", self.waypoints)
-        # print("trajectory: ", self.trajectory)
-        return trajectory
+        self.pred_trajs.append(trajectory)
+
+    # def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
+    #     """Set trajectory (self.trajectory) to follow"""
+    #     if waypoints is not None:
+    #         # TODO: use waypoints to make different candidate waypoints for LaneChange scenario
+    #         raise NotImplementedError
+    #     if speed is None:
+    #         speed = get_speed(self._vehicle) / 3.6
+            
+    #     traj_gap = speed * self._dt
+    #     traj_length = int(max_t / self._dt)
+        
+    #     # self.set_waypoints(length)
+        
+    #     trajectory = []
+    #     if not self.waypoints:
+    #         # self.trajectory = []
+    #         return trajectory
+        
+    #     # trajectory = []
+    #     trajectory.append(self.waypoints[0])
+    #     # print("=============================================================================")
+    #     # print("traj_length: ", traj_length, " veh_speed: ", speed, " traj_gap: ", traj_gap)
+    #     left_dist = 0.0
+    #     traj_count = 0
+    #     for i in range(len(self.waypoints)-1):
+    #         left_dist += np.linalg.norm([self.waypoints[i][0]-self.waypoints[i+1][0], self.waypoints[i][1]-self.waypoints[i+1][1]])
+    #         wp_vec_x, wp_vec_y = math.cos(math.radians(self.waypoints[i][2])), math.sin(math.radians(self.waypoints[i][2]))
+                        
+    #         while left_dist >= traj_gap:                
+    #             new_pt = [
+    #                 trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, self.waypoints[i][2]]
+    #             left_dist -= traj_gap
+    #             trajectory.append(new_pt)
+    #             traj_count += 1
+    #             # print("-----------------------------------------------------------------------------")
+    #             # print("i: ", i, " left_dist: ", left_dist, " traj_count: ", traj_count)
+    #             # print("way_pt[i]: ", self.waypoints[i])
+    #             # print("way_pt[i+1]: ", self.waypoints[i+1])
+    #             # print("new_pt: ", new_pt)
+                
+    #             if traj_count >= traj_length:
+    #                 break
+            
+    #         if traj_count >= traj_length:
+    #             break
+            
+    #     # self.trajectory = trajectory
+    #     # print("waypoint: ", self.waypoints)
+    #     # print("trajectory: ", self.trajectory)
+    #     return trajectory
     
     # def update_destination(self, location):
     def update_destination(self, end_location, start_location=None):
