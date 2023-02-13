@@ -35,7 +35,6 @@ class RoundAboutEnv(CarlaEnv):
     self.task_mode = params['task_mode']
     self.max_time_episode = params['max_time_episode']    
     # self.number_of_detections = params['number_of_detections']
-    self.number_of_detections = 3
 
     # Destination
     if params['task_mode'] == 'roundabout':
@@ -45,19 +44,22 @@ class RoundAboutEnv(CarlaEnv):
       raise NotImplementedError
 
     # action and observation spaces
-    self.discrete = params['discrete']
-    self.discrete_act = [params['discrete_acc'], params['discrete_steer']] # acc, steer
-    self.n_acc = len(self.discrete_act[0])
-    self.n_steer = len(self.discrete_act[1])
+    # self.discrete = params['discrete']
+    # self.discrete_act = [params['discrete_acc'], params['discrete_steer']] # acc, steer
+    # self.n_acc = len(self.discrete_act[0])
+    # self.n_steer = len(self.discrete_act[1])
+
+    # if self.discrete:
+    #   self.action_space = spaces.Discrete(self.n_acc*self.n_steer)
+    # else:
+    #   self.action_space = spaces.Box(np.array([params['continuous_accel_range'][0], 
+    #   params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
+    #   params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
+    #     
     self.action_types = ["GO", "STOP"]
-    
-    if self.discrete:
-      self.action_space = spaces.Discrete(self.n_acc*self.n_steer)
-    else:
-      self.action_space = spaces.Box(np.array([params['continuous_accel_range'][0], 
-      params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
-      params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
-    
+    self.number_of_detections = 3
+    self.action_space = spaces.Discrete(len(self.action_types))
+
     # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     # self.observation_space = spaces.Dict(observation_space_dict)
     self.observation_space = spaces.Box(
@@ -81,11 +83,14 @@ class RoundAboutEnv(CarlaEnv):
       
     state = np.array([lateral_dis, - delta_yaw, speed, self.vehicle_front])
 
-    time_to_collisions, dist_to_collisions = np.ones(3), np.ones(3)
+    time_to_collisions = np.ones(len(self.action_types) * self.number_of_detections)
+    dist_to_collisions = np.ones(len(self.action_types) * self.number_of_detections)
     if self.collision_infos:
-      for i in range(min(len(self.collision_infos), self.number_of_detections)):
-        time_to_collisions[i] = self.collision_infos[i]['time_to_collision']
-        dist_to_collisions[i] = self.collision_infos[i]['dist_to_collision']
+      for i in range(len(self.collision_infos)):
+        for j in range(min(len(self.collision_infos[i]), self.number_of_detections)):
+          index = i * len(self.collision_infos) + j
+          time_to_collisions[index] = self.collision_infos[i][j]['time_to_collision']
+          dist_to_collisions[index] = self.collision_infos[i][j]['dist_to_collision']
       
     # print("state: ", state)
     # print("time_to_collisions: ", time_to_collisions)
