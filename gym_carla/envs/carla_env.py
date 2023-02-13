@@ -53,6 +53,7 @@ class CarlaEnv(gym.Env):
     self.n_acc, self.n_steer = None, None
     self.action_space = None
     self.observation_space = None
+    self.action_types = None
 
     # Connect to carla server and get world object
     print('connecting to Carla server...')
@@ -240,7 +241,8 @@ class CarlaEnv(gym.Env):
     # for _collision_info in _collision_infos:
       # self.collision_infos.append(sorted(_collision_info, key=lambda d: d['time_to_collision'], reverse=False))
     # self._set_time_and_dist_to_collisions()      
-    self._set_dist_to_collisions()      
+    self._set_dist_to_collisions()
+    self._set_ego_vehicle_desired_speeds()      
     # print("collision_infos: ", self.collision_infos)
     
     # state information
@@ -492,10 +494,11 @@ class CarlaEnv(gym.Env):
         # print("vehicle.local_planner._waypoint_buffer: ", vehicle.local_planner._waypoint_buffer)
     else:
       raise NotImplementedError
-
-  def _update_ego_vehicle_waypoints_and_trajectories(self):
-    raise NotImplementedError
   
+  def _update_ego_vehicle_waypoints_and_trajectories(self):
+    self.ego.set_candidate_waypoints(self.action_types)
+    self.ego.set_candidate_trajectories()
+
   def _update_random_vehicle_waypoints_and_trajectories(self):
     # self.ego.update_trajectory(max_t=max_t)
     for vehicle in self.vehicles:
@@ -563,7 +566,10 @@ class CarlaEnv(gym.Env):
     
     dist_to_collision = min(dist_to_collision, max_dist)    
     return {"id": vehicle.id, "collision": False, "speed: ": get_speed(vehicle), "dist_to_collision": dist_to_collision}
-  
+    
+  def set_ego_vehicle_desired_speeds(self):
+    self.collision_infos
+
   # def _get_time_and_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
   #   if len(cand_traj) < 2 or len(vehicle.pred_traj) < 2:
   #     return {"id": vehicle.id, "time_to_collision": max_time / max_time, "dist_to_collision": max_dist / max_dist} 
