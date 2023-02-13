@@ -49,6 +49,7 @@ class RoundAboutEnv(CarlaEnv):
     self.discrete_act = [params['discrete_acc'], params['discrete_steer']] # acc, steer
     self.n_acc = len(self.discrete_act[0])
     self.n_steer = len(self.discrete_act[1])
+    self.action_types = ["GO", "STOP"]
     
     if self.discrete:
       self.action_space = spaces.Discrete(self.n_acc*self.n_steer)
@@ -59,8 +60,11 @@ class RoundAboutEnv(CarlaEnv):
     
     # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
     # self.observation_space = spaces.Dict(observation_space_dict)
-    self.observation_space = spaces.Box(np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), dtype=np.float32)
-
+    self.observation_space = spaces.Box(
+      np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 
+      np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]), 
+      dtype=np.float32)
+  
   def _get_obs(self):
     """Get the observations."""
 
