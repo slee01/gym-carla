@@ -821,7 +821,7 @@ class SafeAgent(Agent):
 
         return (False, None, -1)
 
-    def car_following_control(self, front_vehicle, distance, debug=False):
+    def get_target_speed(self, front_dist, front_speed, waypoint_type=None, debug=False):
         """
         Module in charge of car-following behaviors when there's
         someone in front of us.
@@ -831,12 +831,13 @@ class SafeAgent(Agent):
             :param debug: boolean for debugging
             :return control: carla.VehicleControl
         """
-
-        front_speed = get_speed(front_vehicle)
+        if waypoint_type is None:
+            raise NotImplementedError
+            
         ego_speed = get_speed(self._vehicle)
         _ego_speed_limit = self.get_speed_limit()
         delta_v = max(1, (ego_speed - front_speed) / 3.6)
-        ttc = distance / delta_v if delta_v != 0 else distance / np.nextafter(0., 1.)
+        ttc = front_dist / delta_v if delta_v != 0 else front_dist / np.nextafter(0., 1.)
 
         # Under safety time distance, slow down.
         if self._behavior.safety_time > ttc > 0.0:
@@ -865,6 +866,51 @@ class SafeAgent(Agent):
             control = self.local_planner.run_step(debug=debug)
 
         return control
+
+    # def car_following_control(self, front_vehicle, distance, debug=False):
+    #     """
+    #     Module in charge of car-following behaviors when there's
+    #     someone in front of us.
+
+    #         :param front_vehicle: car to follow
+    #         :param distance: distance from vehicle
+    #         :param debug: boolean for debugging
+    #         :return control: carla.VehicleControl
+    #     """
+
+    #     front_speed = get_speed(front_vehicle)
+    #     ego_speed = get_speed(self._vehicle)
+    #     _ego_speed_limit = self.get_speed_limit()
+    #     delta_v = max(1, (ego_speed - front_speed) / 3.6)
+    #     ttc = distance / delta_v if delta_v != 0 else distance / np.nextafter(0., 1.)
+
+    #     # Under safety time distance, slow down.
+    #     if self._behavior.safety_time > ttc > 0.0:
+    #         target_speed = min([
+    #             positive(front_speed - self._behavior.speed_decrease),
+    #             self._behavior.max_speed,
+    #             _ego_speed_limit - self._behavior.speed_lim_dist])
+    #         self.local_planner.set_speed(target_speed)
+    #         control = self.local_planner.run_step(debug=debug)
+
+    #     # Actual safety distance area, try to follow the speed of the vehicle in front.
+    #     elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:
+    #         target_speed = min([
+    #             max(self._min_speed, front_speed),
+    #             self._behavior.max_speed,
+    #             _ego_speed_limit - self._behavior.speed_lim_dist])
+    #         self.local_planner.set_speed(target_speed)
+    #         control = self.local_planner.run_step(debug=debug)
+
+    #     # Normal behavior.
+    #     else:
+    #         target_speed = min([
+    #             self._behavior.max_speed,
+    #             _ego_speed_limit - self._behavior.speed_lim_dist])
+    #         self.local_planner.set_speed(target_speed)
+    #         control = self.local_planner.run_step(debug=debug)
+
+    #     return control
 
     def get_hazard_obstacle(self, waypoint):
         """
