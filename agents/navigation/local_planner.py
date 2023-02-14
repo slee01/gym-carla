@@ -96,7 +96,7 @@ class LocalPlanner(object):
         self.target_road_option = None
 
         self._waypoints_queue = deque(maxlen=10000)
-        self._min_waypoint_queue_length = 100
+        self._min_waypoint_queue_length = 20
         self._stop_waypoint_creation = False
 
         # Base parameters
