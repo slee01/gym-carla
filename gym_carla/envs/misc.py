@@ -273,8 +273,13 @@ def get_intersection_dist(wp1, wp2, wp3, wp4):
   int_pt = line1.intersection(line2)
   if int_pt.is_empty:
     return False, None
-
-  inter_dist = np.linalg.norm([int_pt.x - wp1[0], int_pt.y - wp1[1]])
+  # print("int_pt: ", int_pt, " int_pt.is_empty: ", int_pt.is_empty)
+  if isinstance(int_pt, LineString):
+    inter_dist = 0.0
+  elif isinstance(int_pt, Point):
+    inter_dist = np.linalg.norm([int_pt.x - wp1[0], int_pt.y - wp1[1]])
+  else:
+    raise NotImplementedError
   
   # print("wp1: ", wp1)
   # print("wp2: ", wp2)
