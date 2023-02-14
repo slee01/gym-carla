@@ -844,19 +844,22 @@ class SafeAgent(Agent):
 
         # Under safety time distance, slow down.
         if self._behavior.safety_time > ttc > 0.0:
+            # print("if self._behavior.safety_time > ttc > 0.0:")
             target_speed = min([positive(front_speed - self._behavior.speed_decrease), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
         # Actual safety distance area, try to follow the speed of the vehicle in front.
         elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:
+            # print("elif 2 * self._behavior.safety_time > ttc >= self._behavior.safety_time:")
             target_speed = min([max(self._min_speed, front_speed), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
         # Normal behavior.
         else:
+            # print("else:")
             target_speed = min([self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
 
         GO_SPEED_LIMIT, STOP_SPEED_LIMIT = 10.0, 5.0
         if waypoint_type == "GO" and target_speed < GO_SPEED_LIMIT:
             target_speed = GO_SPEED_LIMIT
         elif waypoint_type == "STOP" and target_speed > STOP_SPEED_LIMIT:
-            target_speed = max(5.0, target_speed - self._behavior.speed_delta)
+            target_speed = STOP_SPEED_LIMIT
 
         if target_speed > ego_speed + self._behavior.speed_delta:
             target_speed = ego_speed + self._behavior.speed_delta
