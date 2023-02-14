@@ -107,7 +107,7 @@ class LocalPlanner(object):
         # self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.07, 'K_D': 0.2, 'dt': self._dt}
         self._args_lateral_dict = {'K_P': 1.0, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
         # self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
-        self._args_longitudinal_dict = {'K_P': 0.15, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
+        self._args_longitudinal_dict = {'K_P': 0.5, 'K_I': 0.15, 'K_D': 0.3, 'dt': self._dt}
         self._max_throt = 0.75
         self._max_brake = 0.3
         self._max_steer = 0.8
@@ -394,7 +394,7 @@ class LocalPlanner(object):
             target_waypoint = waypoints['waypoints'][0]
             control = self._vehicle_controller.run_step(target_speed, target_waypoint)
 
-        print("waypoints['type']: ", waypoints['type'])
+        # print("waypoints['type']: ", waypoints['type'])
         if waypoints['type'] != "GO" and front_dist < self._emergency_dist:
             control.throttle = 0.0
             control.brake = 1.0

@@ -230,9 +230,9 @@ class CarlaEnv(gym.Env):
     self._set_time_to_collisions()
     # self.ego.waypoints = self.ego.cand_wpts[action]['waypoints']
 
-    print("*********************************************************")
-    print("location: ", self.ego.get_location(), "desired_speed: ", self.ego.desired_speeds[action], " current_speed: ", get_speed(self.ego))
-    print("control: ", act)
+    # print("*********************************************************")
+    # print("location: ", self.ego.get_location(), "desired_speed: ", self.ego.desired_speeds[action], " current_speed: ", get_speed(self.ego))
+    # print("control: ", act)
     # print("waypoints: ", self.ego.cand_wpts[0]['waypoints'][:5])
 
     # state information
@@ -480,14 +480,14 @@ class CarlaEnv(gym.Env):
       return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
     is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_trajs[0][0], vehicle.pred_trajs[0][-1])    
-    if is_exist:
-      print("========================================================")
-      print("cand_traj[0]: ", cand_traj[0])
-      print("cand_traj[-1]: ", cand_traj[-1])
-      print("pred_traj[0][0]: ", vehicle.pred_trajs[0][0])
-      print("pred_traj[0][-1]: ", vehicle.pred_trajs[0][-1])
-      print("is_exist: ", is_exist)
-      print("========================================================")
+    # if is_exist:
+      # print("========================================================")
+      # print("cand_traj[0]: ", cand_traj[0])
+      # print("cand_traj[-1]: ", cand_traj[-1])
+      # print("pred_traj[0][0]: ", vehicle.pred_trajs[0][0])
+      # print("pred_traj[0][-1]: ", vehicle.pred_trajs[0][-1])
+      # print("is_exist: ", is_exist)
+      # print("========================================================")
     # else:
       # print("========================================================")
       # print("")
@@ -502,16 +502,16 @@ class CarlaEnv(gym.Env):
     dist_to_collision = 0.0    
     for i in range(len(cand_traj)-1):
       min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span + 1)
-      print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-      print("ego_traj[i]: ", i, " ", cand_traj[i])
-      print("ego_traj[i+1]: ", i+1, " ", cand_traj[i+1])
-      print("min_idx: ", min_idx, " max_idx: ", max_idx)
+      # print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+      # print("ego_traj[i]: ", i, " ", cand_traj[i])
+      # print("ego_traj[i+1]: ", i+1, " ", cand_traj[i+1])
+      # print("min_idx: ", min_idx, " max_idx: ", max_idx)
       for k in range(min_idx, max_idx-1):        
-        print("##########################################")
+        # print("##########################################")
         collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_trajs[0][k], vehicle.pred_trajs[0][k+1])                
-        print("k: ", k, " collision_exist, ", collision_exist, " collision_dist: ", collision_dist)
-        print("vehicle_traj[k]: ", vehicle.pred_trajs[0][k])
-        print("vehicle_traj[k+1]: ", vehicle.pred_trajs[0][k+1])
+        # print("k: ", k, " collision_exist, ", collision_exist, " collision_dist: ", collision_dist)
+        # print("vehicle_traj[k]: ", vehicle.pred_trajs[0][k])
+        # print("vehicle_traj[k+1]: ", vehicle.pred_trajs[0][k+1])
         if collision_exist:
           break
             

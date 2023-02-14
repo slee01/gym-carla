@@ -185,8 +185,9 @@ class PIDLateralController():
         :return: steering control in the range [-1, 1]
         """
         v_begin = vehicle_transform.location
-        v_end = v_begin + carla.Location(x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
-                                         y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
+        v_end = v_begin + carla.Location(
+            x=math.cos(math.radians(vehicle_transform.rotation.yaw)),
+            y=math.sin(math.radians(vehicle_transform.rotation.yaw)))
 
         v_vec = np.array([
             v_end.x - v_begin.x, 
