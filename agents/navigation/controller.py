@@ -72,11 +72,18 @@ class VehiclePIDController():
 
         control = carla.VehicleControl()
         control.steer = steering
-        control.throttle = throttle
-        control.brake = 0.0
+        # control.throttle = throttle
+        # control.brake = 0.0
         control.hand_brake = False
         control.manual_gear_shift = False
 
+        if throttle >= 0.0:
+            control.throttle = throttle
+            control.brake = 0.0
+        else:
+            control.throttle = 0.0
+            control.brake = -throttle
+                    
         return control
 
 
