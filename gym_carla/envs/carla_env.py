@@ -138,7 +138,7 @@ class CarlaEnv(gym.Env):
       for spawn_point in self.vehicle_spawn_points:
         # if np.linalg.norm([spawn_point.location.x - 52.1, spawn_point.location.y - 4.2]) < 10.0:
           # continue
-        if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) < self.spawn_range:
+        if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
             continue          
         if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
           count -= 1
@@ -146,7 +146,7 @@ class CarlaEnv(gym.Env):
           break
     while count > 0:
       spawn_point = random.choice(self.vehicle_spawn_points)
-      if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) < self.spawn_range:
+      if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
           continue
       if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
         count -= 1
