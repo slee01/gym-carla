@@ -456,8 +456,8 @@ class CarlaEnv(gym.Env):
         if collision_info[j]['dist_to_collision'] == self.pred_dist:
           time_to_collision = self.pred_time
         else:
-          time_to_collision = collision_info[j]['dist_to_collision'] / (self.ego.desired_speeds[i] / 3.6)
-        collision_info[j]['time_to_collision'] = time_to_collision
+          time_to_collision = collision_info[j]['dist_to_collision'] / ((self.ego.desired_speeds[i] + 1e-8) / 3.6)
+        collision_info[j]['time_to_collision'] = min(self.pred_time, time_to_collision)
 
     # if self.ego.cand_trajs is None:
     #   raise NotImplementedError
