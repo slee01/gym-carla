@@ -124,18 +124,27 @@ class RoundAboutEnv(CarlaEnv):
     # Get ego state
     ego_x, ego_y = get_pos(self.ego)
 
+    # print("if len(self.collision_hist)>0: ", len(self.collision_hist)>0)
+    # print("if self.time_step>=self.max_time_episode: ", self.time_step, " ", self.max_time_episode)
+    # print("if np.sqrt((ego_x-self.ego_dest[0])**2+(ego_y-self.ego_dest[1])**2)<10.0: ", np.sqrt((ego_x-self.ego_dest[0])**2+(ego_y-self.ego_dest[1])**2))
+    # print("get_lane_dis(self.ego.cand_wpts[action]['waypoints'], ego_x, ego_y): ", get_lane_dis(self.ego.cand_wpts[action]['waypoints'], ego_x, ego_y))
+
     # If collides
     if len(self.collision_hist)>0: 
       return True
     # If reach maximum timestep
     if self.time_step>=self.max_time_episode:
       return True
-    # If at destination
-    if self.dests is not None: # If at destination
-      for dest in self.dests:
-        # if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
-        if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<10.0:
-          return True
+
+    # # If at destination
+    # if self.dests is not None: # If at destination
+    #   for dest in self.dests:
+    #     if np.sqrt((ego_x-dest[0])**2+(ego_y-dest[1])**2)<4:
+    #       return True    
+
+    if np.sqrt((ego_x-self.ego_dest[0])**2+(ego_y-self.ego_dest[1])**2)<4.0:
+      return True
+
     # If out of lane
     dis, _ = get_lane_dis(self.ego.cand_wpts[action]['waypoints'], ego_x, ego_y)
     if abs(dis) > self.out_lane_thres:
