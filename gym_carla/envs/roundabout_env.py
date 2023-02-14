@@ -108,7 +108,8 @@ class RoundAboutEnv(CarlaEnv):
     v = self.ego.get_velocity()
     speed = np.sqrt(v.x**2 + v.y**2)
     # r_speed = -abs(speed - self.desired_speed)
-    r_speed = min(1.0, speed / self.desired_speed)
+    # r_speed = min(1.0, speed / self.desired_speed)
+    r_speed = min(1.0, speed / self.ego._behavior.max_speed)
     
     # reward for collision
     r_collision = 0
