@@ -107,7 +107,7 @@ class LocalPlanner(object):
         # self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.07, 'K_D': 0.2, 'dt': self._dt}
         self._args_lateral_dict = {'K_P': 1.0, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
         # self._args_longitudinal_dict = {'K_P': 1.0, 'K_I': 0.05, 'K_D': 0, 'dt': self._dt}
-        self._args_longitudinal_dict = {'K_P': 0.1, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
+        self._args_longitudinal_dict = {'K_P': 0.15, 'K_I': 0.0, 'K_D': 0.0, 'dt': self._dt}
         self._max_throt = 0.75
         self._max_brake = 0.3
         self._max_steer = 0.8
@@ -117,6 +117,7 @@ class LocalPlanner(object):
         self._distance_ratio = 0.1
         self._follow_speed_limits = False
         self._speed_limit = 20.0  # Km/h
+        self._emergency_dist = 5.0
 
         # Overload parameters
         if opt_dict:
@@ -365,7 +366,7 @@ class LocalPlanner(object):
 
         return control
 
-    def get_control(self, waypoints, target_speed, debug=True):
+    def get_control(self, waypoints, target_speed, collision_info, debug=True):
         """
         Execute one step of local planning which involves running the longitudinal and lateral PID controllers to
         follow the waypoints trajectory.
@@ -380,6 +381,7 @@ class LocalPlanner(object):
         # # move using PID controllers
         # control = self._vehicle_controller.run_step(self._target_speed, self.target_waypoint)
 
+        front_dist, front_speed = collision_info[0]['dist_to_collision'], collision_info[0]['speed']
         # Get the target waypoint and move using the PID controllers. Stop if no target waypoint
         if len(waypoints) == 0:
             control = carla.VehicleControl()
@@ -392,9 +394,13 @@ class LocalPlanner(object):
             target_waypoint = waypoints['waypoints'][0]
             control = self._vehicle_controller.run_step(target_speed, target_waypoint)
 
-        # if debug:
-        draw_points(self._vehicle.get_world(), waypoints['waypoints'], self._vehicle.get_location().z + 1.0)
-
+        print("waypoints['type']: ", waypoints['type'])
+        if waypoints['type'] != "GO" and front_dist < self._emergency_dist:
+            control.throttle = 0.0
+            control.brake = 1.0
+            control.hand_brake = False 
+            
+        # draw_points(self._vehicle.get_world(), waypoints['waypoints'], self._vehicle.get_location().z + 1.0)
         return control
 
     def purge_deprecated_waypoints(self):
