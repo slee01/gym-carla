@@ -479,22 +479,9 @@ class CarlaEnv(gym.Env):
     if len(cand_traj) < 2 or len(vehicle.pred_trajs[0]) < 2:
       return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
-    is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_trajs[0][0], vehicle.pred_trajs[0][-1])    
-    # if is_exist:
-      # print("========================================================")
-      # print("cand_traj[0]: ", cand_traj[0])
-      # print("cand_traj[-1]: ", cand_traj[-1])
-      # print("pred_traj[0][0]: ", vehicle.pred_trajs[0][0])
-      # print("pred_traj[0][-1]: ", vehicle.pred_trajs[0][-1])
-      # print("is_exist: ", is_exist)
-      # print("========================================================")
-    # else:
-      # print("========================================================")
-      # print("")
-      # print("========================================================")
-       
-    if not is_exist:
-      return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
+    # is_exist, _ = get_intersection_dist(cand_traj[0], cand_traj[-1], vehicle.pred_trajs[0][0], vehicle.pred_trajs[0][-1])    
+    # if not is_exist:
+      # return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
     buf_span = int(buf_t / self.pred_dt)
     traj_len = len(vehicle.pred_trajs[0])    
