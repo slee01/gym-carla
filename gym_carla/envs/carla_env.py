@@ -205,8 +205,11 @@ class CarlaEnv(gym.Env):
 
   def step(self, action):
     # Apply control
-    action = 0
-    act = self.ego.local_planner.get_control(waypoints=self.ego.cand_wpts[action], target_speed=self.ego.desired_speeds[action])
+    # action = 0
+    act = self.ego.local_planner.get_control(
+      waypoints=self.ego.cand_wpts[action],
+      target_speed=self.ego.desired_speeds[action], 
+      collision_info=self.collision_infos[action])
     self.ego.apply_control(act)
     self._apply_random_vehicle_control()
 

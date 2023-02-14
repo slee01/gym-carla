@@ -238,15 +238,15 @@ class SafeAgent(Agent):
             self.cand_trajs.append(trajectory)
 
     def set_predicted_waypoints(self, length=50):
-        self.pred_wpts = []
+        self.pred_wpts = None
         waypoints = self.local_planner.get_waypoints(length)
-        self.pred_wpts.append(waypoints)
+        self.pred_wpts = waypoints
 
     def set_predicted_trajectories(self, length=50, max_t=2.0):
         """Set trajectory (self.trajectory) to follow"""
         if self.pred_wpts is None:
             raise NotImplementedError
-
+        
         if not self.pred_wpts:
             return []
 
@@ -257,7 +257,7 @@ class SafeAgent(Agent):
 
         trajectory = []
         trajectory.append(self.pred_wpts[0])
-
+        
         left_dist, traj_count = 0.0, 0
         for i in range(len(self.pred_wpts)-1):
             left_dist += np.linalg.norm([self.pred_wpts[i][0]-self.pred_wpts[i+1][0], self.pred_wpts[i][1]-self.pred_wpts[i+1][1]])
@@ -274,7 +274,7 @@ class SafeAgent(Agent):
             
             if traj_count >= traj_length:
                 break
-            
+        
         self.pred_trajs.append(trajectory)
 
     # def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
@@ -843,6 +843,9 @@ class SafeAgent(Agent):
         ttc = front_dist / delta_v if delta_v != 0 else front_dist / np.nextafter(0., 1.)
 
         # Under safety time distance, slow down.
+        # print("------------------------------------------------------------------------")            
+        # print("time_to_collision: ", ttc, " safety_time: ", self._behavior.safety_time)
+        # print("front_dist: ", front_dist, " front_speed: ", front_speed)
         if self._behavior.safety_time > ttc > 0.0:
             # print("if self._behavior.safety_time > ttc > 0.0:")
             target_speed = min([positive(front_speed - self._behavior.speed_decrease), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
@@ -852,8 +855,8 @@ class SafeAgent(Agent):
             target_speed = min([max(self._min_speed, front_speed), self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
         # Normal behavior.
         else:
-            # print("else:")
-            target_speed = min([self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])
+            # print("else: (Normal Behavior)")
+            target_speed = min([self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])        
 
         GO_SPEED_LIMIT, STOP_SPEED_LIMIT = 10.0, 5.0
         if waypoint_type == "GO" and target_speed < GO_SPEED_LIMIT:
