@@ -213,6 +213,7 @@ class CarlaEnv(gym.Env):
     self.ego.apply_control(act)
     self._apply_random_vehicle_control()
 
+    self.collision_hist = []
     self.world.tick()
 
     # Append actors polygon list
@@ -421,7 +422,7 @@ class CarlaEnv(gym.Env):
   
   def _update_ego_vehicle_waypoints_and_trajectories(self):
     self.ego.set_candidate_waypoints(self.action_types)
-    self.ego.set_candidate_trajectories()
+    self.ego.set_candidate_trajectories(max_t=self.pred_time)
 
   def _update_random_vehicle_waypoints_and_trajectories(self):
     # self.ego.update_trajectory(max_t=max_t)
@@ -483,33 +484,49 @@ class CarlaEnv(gym.Env):
     # if not is_exist:
       # return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
+
+
+
+
+    # print("========================================================================")
+    # print("ego vehicle: ", self.ego.id, " location: ", self.ego.get_location(), " velocity: ", get_speed(self.ego))
+    # print("cand_traj: ", cand_traj)
+    # print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
+    # print("vehicle id: ", vehicle.id, " location: ", vehicle.get_location(), " speed: ", get_speed(vehicle))
+    # print("pred_traj: ", vehicle.pred_trajs[0])
     buf_span = int(buf_t / self.pred_dt)
     traj_len = len(vehicle.pred_trajs[0])    
     traj_gap = np.linalg.norm([cand_traj[0][0] - cand_traj[1][0], cand_traj[0][1] - cand_traj[1][1]])
     dist_to_collision = 0.0    
     for i in range(len(cand_traj)-1):
       min_idx, max_idx = max(0, i - buf_span), min(traj_len, i + buf_span + 1)
-      # print("++++++++++++++++++++++++++++++++++++++++++++++++++++++")
-      # print("ego_traj[i]: ", i, " ", cand_traj[i])
-      # print("ego_traj[i+1]: ", i+1, " ", cand_traj[i+1])
-      # print("min_idx: ", min_idx, " max_idx: ", max_idx)
-      for k in range(min_idx, max_idx-1):        
-        # print("##########################################")
+      for k in range(min_idx, max_idx-1):                
         collision_exist, collision_dist = get_intersection_dist(cand_traj[i], cand_traj[i+1], vehicle.pred_trajs[0][k], vehicle.pred_trajs[0][k+1])                
-        # print("k: ", k, " collision_exist, ", collision_exist, " collision_dist: ", collision_dist)
-        # print("vehicle_traj[k]: ", vehicle.pred_trajs[0][k])
-        # print("vehicle_traj[k+1]: ", vehicle.pred_trajs[0][k+1])
+        # if collision_exist:
+        #   print("######################################################")
+        #   print("ego_traj[i]: ", i, " ", cand_traj[i])
+        #   print("ego_traj[i+1]: ", i+1, " ", cand_traj[i+1])
+        #   print("min_idx: ", min_idx, " max_idx: ", max_idx)          
+        #   print("k: ", k, " collision_exist, ", collision_exist, " collision_dist: ", collision_dist)
+        #   print("vehicle_traj[k]: ", vehicle.pred_trajs[0][k])
+        #   print("vehicle_traj[k+1]: ", vehicle.pred_trajs[0][k+1])
+        #   print("######################################################")
         if collision_exist:
           break
             
       if collision_exist:
         dist_to_collision += collision_dist
-        break
+        dist_to_collision = min(dist_to_collision, max_dist)    
+        return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": dist_to_collision}
+        # break
       else:        
         dist_to_collision += traj_gap
-    
-    dist_to_collision = min(dist_to_collision, max_dist)    
-    return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": dist_to_collision}
+    # print("dist_to_collision: ", dist_to_collision)
+    # print("========================================================================")
+
+    # dist_to_collision = min(dist_to_collision, max_dist)    
+    # return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": dist_to_collision}
+    return {"id": vehicle.id, "collision": False, "speed": get_speed(vehicle), "dist_to_collision": max_dist}
     
   def _update_ego_vehicle_desired_speeds(self):
     assert len(self.ego.cand_trajs) == len(self.collision_infos), "candidate trajectories and collision_infos of ego vehicle should be equal."
