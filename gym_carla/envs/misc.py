@@ -17,6 +17,7 @@ import skimage
 
 from matplotlib.path import Path
 from shapely.geometry import LineString, Point
+from shapely.ops import nearest_points
 
 def get_speed(vehicle):
   """
@@ -272,7 +273,14 @@ def get_intersection_dist(wp1, wp2, wp3, wp4):
 
   int_pt = line1.intersection(line2)
   if int_pt.is_empty:
-    return False, None
+    nearest_dist = line1.distance(line2)
+    if nearest_dist < 3.0:
+      ref_point = Point([wp1[0], wp1[1]])
+      nearest_point = nearest_points(line1, line2)[0]
+      inter_dist = ref_point.distance(nearest_point)
+      return True, inter_dist
+    else:    
+      return False, None
   # print("int_pt: ", int_pt, " int_pt.is_empty: ", int_pt.is_empty)
   if isinstance(int_pt, LineString):
     inter_dist = 0.0
