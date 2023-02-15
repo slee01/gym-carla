@@ -113,11 +113,12 @@ class RoundAboutEnv(CarlaEnv):
     
     # reward for collision
     r_collision = 0
-    if len(self.collision_hist) > 0 or self.collision_infos[action][0]['time_to_collision'] <= (1.0 / self.pred_time):
+    if len(self.collision_hist) > 0 or self.collision_infos[action][0]['time_to_collision'] <= 1.0:
       r_collision = -1
 
     r = 10*r_collision + 1*r_speed
 
+    print("speed: ", speed, " self.collision_hist: ", self.collision_hist, " self.collision_infos[action][0]['time_to_collision']: ", self.collision_infos[action][0]['time_to_collision'])
     return r
 
   def _terminal(self, action=None):
