@@ -208,18 +208,37 @@ class SafeAgent(Agent):
             return []
 
         self.cand_trajs = []
+        location = self._vehicle.get_location()
         traj_length = int(max_t / self._dt)
-        for candidate in self.cand_wpts:
-            type, waypoints = candidate['type'], candidate['waypoints']
-        
-            speed = get_speed(self._vehicle) / 3.6  # TODO: replace current speed with target speed
-            traj_gap = speed * self._dt
-        
-            trajectory = []
-            trajectory.append(waypoints[0])
+        speed = get_speed(self._vehicle) / 3.6  # TODO: replace current speed with target speed
+        traj_gap = speed * self._dt
 
-            left_dist, traj_count = 0.0, 0
+        for candidate in self.cand_wpts:
+            type, waypoints = candidate['type'], candidate['waypoints']        
+            trajectory = []
+
+            left_dist = np.linalg.norm([location.x-waypoints[0][0], location.y-waypoints[0][1]])
+            yaw = (math.degrees(math.atan2(waypoints[0][1] - location.y, waypoints[0][0] - location.x)) + 360.0) % 360.0            
+            trajectory.append([location.x, location.y, yaw])
+
+            # trajectory.append(waypoints[0])
+            # left_dist, traj_count = 0.0, 0
+            wp_vec_x, wp_vec_y = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+
+            traj_count = 0
+            while left_dist >= traj_gap:
+                new_pt = [trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, yaw]
+                left_dist -= traj_gap
+                trajectory.append(new_pt)
+                traj_count += 1
+
+                if traj_count >= traj_length:
+                    break                            
+
             for i in range(len(waypoints)-1):
+                if traj_count >= traj_length:
+                    break
+
                 left_dist += np.linalg.norm([waypoints[i][0]-waypoints[i+1][0], waypoints[i][1]-waypoints[i+1][1]])
                 wp_vec_x, wp_vec_y = math.cos(math.radians(waypoints[i][2])), math.sin(math.radians(waypoints[i][2]))
                             
@@ -231,9 +250,6 @@ class SafeAgent(Agent):
                     
                     if traj_count >= traj_length:
                         break
-                
-                if traj_count >= traj_length:
-                    break
                 
             self.cand_trajs.append(trajectory)
 
@@ -251,15 +267,38 @@ class SafeAgent(Agent):
             return []
 
         self.pred_trajs = []
-        speed = get_speed(self._vehicle) / 3.6            
+        location = self._vehicle.get_location()
+        speed = get_speed(self._vehicle) / 3.6
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
 
         trajectory = []
-        trajectory.append(self.pred_wpts[0])
+        # trajectory.append(self.pred_wpts[0])
+        left_dist = np.linalg.norm([location.x-self.pred_wpts[0][0], location.y-self.pred_wpts[0][1]])
+        yaw = (math.degrees(math.atan2(self.pred_wpts[0][1] - location.y, self.pred_wpts[0][0] - location.x)) + 360.0) % 360.0
+        wp_vec_x, wp_vec_y = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+        trajectory.append([location.x, location.y, yaw])
+        # print("yaw: ", yaw, " wp_vex_x: ", wp_vec_x, " wp_vec_y: ", wp_vec_y)
+        traj_count = 0
+        while left_dist >= traj_gap:
+            new_pt = [trajectory[-1][0] + wp_vec_x * traj_gap, trajectory[-1][1] + wp_vec_y * traj_gap, yaw]
+            left_dist -= traj_gap
+            trajectory.append(new_pt)
+            traj_count += 1
+
+            if traj_count >= traj_length:
+                break
+
+        # print("=============================================")
+        # print("location: ", self._vehicle.get_location(), " speed: ", get_speed(self._vehicle))
+        # print("trajectory Before: ", trajectory)
+        # print("traj_count: ", traj_count)
         
-        left_dist, traj_count = 0.0, 0
+        # left_dist, traj_count = 0.0, 0
         for i in range(len(self.pred_wpts)-1):
+            if traj_count >= traj_length:
+                break
+
             left_dist += np.linalg.norm([self.pred_wpts[i][0]-self.pred_wpts[i+1][0], self.pred_wpts[i][1]-self.pred_wpts[i+1][1]])
             wp_vec_x, wp_vec_y = math.cos(math.radians(self.pred_wpts[i][2])), math.sin(math.radians(self.pred_wpts[i][2]))
                         
@@ -271,10 +310,9 @@ class SafeAgent(Agent):
                 
                 if traj_count >= traj_length:
                     break
-            
-            if traj_count >= traj_length:
-                break
         
+        # print("trajectory After: ", trajectory)
+        # print("=============================================")
         self.pred_trajs.append(trajectory)
 
     # def get_trajectory(self, waypoints=None, speed=None, length=50, max_t=2.0):
