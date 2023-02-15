@@ -105,8 +105,9 @@ class RoundAboutEnv(CarlaEnv):
   def _get_reward(self, action=None):
     """Calculate the step reward."""
     # reward for speed tracking
-    v = self.ego.get_velocity()
-    speed = np.sqrt(v.x**2 + v.y**2)
+    # v = self.ego.get_velocity()
+    # speed = np.sqrt(v.x**2 + v.y**2)
+    speed = get_speed(self.ego)
     # r_speed = -abs(speed - self.desired_speed)
     # r_speed = min(1.0, speed / self.desired_speed)
     r_speed = min(1.0, speed / self.ego._behavior.max_speed)
