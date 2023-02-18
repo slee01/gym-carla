@@ -39,7 +39,7 @@ class LaneChangeEnv(CarlaEnv):
     # Destination
     self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
 
-    self.action_types = ["GO", "STOP"]
+    self.action_types = ["LANECHANGE", "LANEFOLLOWING"]
     self.number_of_detections = 1
     self.action_space = spaces.Discrete(len(self.action_types))
 
