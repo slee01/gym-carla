@@ -41,6 +41,10 @@ class CarlaEnv(gym.Env):
     self.desired_speed = params['desired_speed']
     self.max_ego_spawn_times = params['max_ego_spawn_times']
     self.display_route = params['display_route']
+    self.task_mode = params['task_mode']
+    self.max_time_episode = params['max_time_episode']
+    self.spawn_range = params['spawn_range']
+    # self.number_of_detections = params['number_of_detections']
 
     # self.pred_dt = params['pred_dt']
     # self.pred_time = params['pred_time']
@@ -131,13 +135,22 @@ class CarlaEnv(gym.Env):
       if ego_spawn_times > self.max_ego_spawn_times:
         self.reset()
 
-      if self.task_mode == 'random':
-        transform = random.choice(self.vehicle_spawn_points)
       if self.task_mode == 'roundabout':
-        # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66] # random
-        self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66] # random
-        # self.start=[52.1,-4.2, 178.66] # static
-        transform = set_carla_transform(self.start)
+        # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66]
+        # self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66]
+        self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      elif self.task_mode == 'intersection':
+        # self.start=[-185.0+np.random.uniform(-5,5),-62.2, 178.66]
+        self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      elif self.task_mode == 'lanechange':
+        self.start= self.start + [0.0, np.random.uniform(-5,5), 0.0]
+      else:
+        raise NotImplementedError
+      
+      # if self.task_mode == 'random':
+        # transform = random.choice(self.vehicle_spawn_points)
+
+      transform = set_carla_transform(self.start)
       if self._try_spawn_ego_vehicle_at(transform):
         break
       else:
@@ -151,16 +164,16 @@ class CarlaEnv(gym.Env):
     count = self.number_of_vehicles
     if count > 0:
       for spawn_point in self.vehicle_spawn_points:
-        if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
-            continue          
+        # if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
+            # continue          
         if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
           count -= 1
         if count <= 0:
           break
     while count > 0:
       spawn_point = random.choice(self.vehicle_spawn_points)
-      if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
-          continue
+      # if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
+          # continue
       if self._try_spawn_random_vehicle_at(spawn_point, number_of_wheels=[4]):
         count -= 1
 
@@ -522,3 +535,8 @@ class CarlaEnv(gym.Env):
       for vehicle in self.vehicles:
         if vehicle.is_alive:
             vehicle.destroy()
+
+  def _get_near_spawn_points(self, loc: carla.Location) -> list:
+    spawn_points = list(self.world.get_map().get_spawn_points())
+    return [pt for pt in spawn_points if pt.location.distance(loc) < self.spawn_range]
+    # return [pt for pt in self.vehicle_spawn_points if pt.location.distance(loc) < radius]
