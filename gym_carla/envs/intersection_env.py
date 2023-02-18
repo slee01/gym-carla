@@ -35,6 +35,8 @@ class IntersectionEnv(CarlaEnv):
     self.task_mode = params['task_mode']
     self.max_time_episode = params['max_time_episode']    
     # self.number_of_detections = params['number_of_detections']
+
+    # Destination
     self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
 
     self.action_types = ["GO", "STOP"]
