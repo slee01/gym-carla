@@ -31,18 +31,10 @@ class RoundAboutEnv(CarlaEnv):
 
   def __init__(self, params):
     super(RoundAboutEnv, self).__init__(params)
-    # parameters
-    self.task_mode = params['task_mode']
-    self.max_time_episode = params['max_time_episode']
-    self.spawn_range = params['spawn_range']
-    # self.number_of_detections = params['number_of_detections']
-
     # Destination
-    if params['task_mode'] == 'roundabout':
-      self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
-    else:
-      # self.dests = None
-      raise NotImplementedError
+    self.start=[62.1,-4.2, 178.66]
+    self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=0.0, y=0.0, z=0.0), radius=self.spawn_range)
 
     # action and observation spaces
     # self.discrete = params['discrete']
@@ -67,7 +59,7 @@ class RoundAboutEnv(CarlaEnv):
       np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0]), 
       np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0]), 
       dtype=np.float32)
-  
+
   def _get_obs(self, action=None):
     """Get the observations."""
 

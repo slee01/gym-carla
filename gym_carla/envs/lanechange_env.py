@@ -31,13 +31,10 @@ class LaneChangeEnv(CarlaEnv):
 
   def __init__(self, params):
     super(LaneChangeEnv, self).__init__(params)
-    # parameters
-    self.task_mode = params['task_mode']
-    self.max_time_episode = params['max_time_episode']    
-    # self.number_of_detections = params['number_of_detections']
-
     # Destination
+    self.start=[-508.0,-120.0, 270.0]
     self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=236.0, y=-61.6, z=0.0), radius=self.spawn_range) 
 
     self.action_types = ["LANECHANGE", "LANEFOLLOWING"]
     self.number_of_detections = 1
@@ -47,7 +44,7 @@ class LaneChangeEnv(CarlaEnv):
       np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0]), 
       np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0]), 
       dtype=np.float32)
-  
+    
   def _get_obs(self, action=None):
     """Get the observations."""
 

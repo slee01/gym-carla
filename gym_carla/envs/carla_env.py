@@ -135,17 +135,18 @@ class CarlaEnv(gym.Env):
       if ego_spawn_times > self.max_ego_spawn_times:
         self.reset()
 
-      if self.task_mode == 'roundabout':
-        # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66]
-        # self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66]
-        self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
-      elif self.task_mode == 'intersection':
-        # self.start=[-185.0+np.random.uniform(-5,5),-62.2, 178.66]
-        self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
-      elif self.task_mode == 'lanechange':
-        self.start= self.start + [0.0, np.random.uniform(-5,5), 0.0]
-      else:
-        raise NotImplementedError
+      self.start = self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      # if self.task_mode == 'roundabout':
+      #   # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66]
+      #   # self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66]
+      #   self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      # elif self.task_mode == 'intersection':
+      #   # self.start=[-185.0+np.random.uniform(-5,5),-62.2, 178.66]
+      #   self.start= self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      # elif self.task_mode == 'lanechange':
+      #   self.start= self.start + [0.0, np.random.uniform(-5,5), 0.0]
+      # else:
+      #   raise NotImplementedError
       
       # if self.task_mode == 'random':
         # transform = random.choice(self.vehicle_spawn_points)
