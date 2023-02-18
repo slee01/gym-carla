@@ -26,11 +26,11 @@ from gym_carla.envs.misc import *
 from agents.navigation.safe_agent import SafeAgent
 
 
-class RoundAboutEnv(CarlaEnv):
+class LaneChangeEnv(CarlaEnv):
   """An OpenAI gym wrapper for CARLA simulator."""
 
   def __init__(self, params):
-    super(RoundAboutEnv, self).__init__(params)
+    super(LaneChangeEnv, self).__init__(params)
     # parameters
     self.task_mode = params['task_mode']
     self.max_time_episode = params['max_time_episode']    
