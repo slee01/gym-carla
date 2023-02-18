@@ -37,7 +37,7 @@ class RoundAboutEnv(CarlaEnv):
     # Destination
     self.start=[62.1,-4.2, 178.66]
     self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
-    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=0.0, y=0.0, z=0.0), radius=self.spawn_range)
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=0.0, y=0.0, z=0.0))
 
     # action and observation spaces
     # self.discrete = params['discrete']
@@ -66,6 +66,19 @@ class RoundAboutEnv(CarlaEnv):
   def _get_obs(self, action=None):
     """Get the observations."""
 
+    # current_waypoint = self.world.get_map().get_waypoint(self.ego.get_location())
+    # next_waypoint = current_waypoint.next(100.0)
+    # print("next_waypoint = current_waypoint.next(100.0) ", len(next_waypoint))
+    # print(next_waypoint)
+    # for nwp in next_waypoint:
+    #   print("waypoint: ", nwp)      
+    #   self.world.debug.draw_string(
+    #   nwp.transform.location, 'o', 
+    #   draw_shadow=False, 
+    #   color=carla.Color(r=255, g=255,b=255), 
+    #   life_time=600.0, 
+    #   persistent_lines=True)
+    
     # State observation
     ego_trans = self.ego.get_transform()
     ego_x = ego_trans.location.x
