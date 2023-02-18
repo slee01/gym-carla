@@ -47,7 +47,6 @@ class CarlaEnv(gym.Env):
     # self.pred_dist = params['pred_dist']
     self.pred_dt = self.dt * 10.0
     self.pred_time, self.pred_dist = 5.0, 80.0
-    self.spawn_range = 60.0
     
     self.dests = None
     self.ego_init, self.ego_dest = None, None
@@ -105,6 +104,27 @@ class CarlaEnv(gym.Env):
     # Disable sync mode
     self._set_synchronous_mode(False)
 
+    # for spawn_point in self.vehicle_spawn_points:
+    #   if np.linalg.norm([spawn_point.location.x, spawn_point.location.y]) > self.spawn_range:
+    #       continue         
+    #   print("spawn_point: ", spawn_point)
+    #   self.world.debug.draw_string(
+    #     spawn_point.location, 'o', 
+    #     draw_shadow=False, 
+    #     color=carla.Color(r=255, g=255,b=255), 
+    #     life_time=600.0, 
+    #     persistent_lines=True)
+      
+    # for dest_point in self.dests:
+    #   print("dest_point: ", dest_point)
+    #   location = carla.Location(x=dest_point[0], y=dest_point[1], z=2.0)
+    #   self.world.debug.draw_string(
+    #     location, 'x', 
+    #     draw_shadow=False, 
+    #     color=carla.Color(r=255, g=255,b=255), 
+    #     life_time=600.0, 
+    #     persistent_lines=True)
+      
     # Spawn the ego vehicle
     ego_spawn_times = 0
     while True:

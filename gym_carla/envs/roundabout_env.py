@@ -33,7 +33,8 @@ class RoundAboutEnv(CarlaEnv):
     super(RoundAboutEnv, self).__init__(params)
     # parameters
     self.task_mode = params['task_mode']
-    self.max_time_episode = params['max_time_episode']    
+    self.max_time_episode = params['max_time_episode']
+    self.spawn_range = params['spawn_range']
     # self.number_of_detections = params['number_of_detections']
 
     # Destination
@@ -119,7 +120,7 @@ class RoundAboutEnv(CarlaEnv):
 
     r = 10*r_collision + 1*r_speed
 
-    print("speed: ", speed, " self.collision_hist: ", self.collision_hist, " self.collision_infos[action][0]['time_to_collision']: ", self.collision_infos[action][0]['time_to_collision'])
+    # print("speed: ", speed, " self.collision_hist: ", self.collision_hist, " self.collision_infos[action][0]['time_to_collision']: ", self.collision_infos[action][0]['time_to_collision'])
     return r
 
   def _terminal(self, action=None):
