@@ -30,6 +30,7 @@ class CarlaEnv(gym.Env):
 
   def __init__(self, params):
     # parameters
+    self.town = params['town']
     self.display_size = params['display_size']  # rendering screen size
     self.max_past_step = params['max_past_step']
     self.number_of_vehicles = params['number_of_vehicles']
@@ -65,7 +66,7 @@ class CarlaEnv(gym.Env):
     print('connecting to Carla server...')
     client = carla.Client('localhost', params['port'])
     client.set_timeout(10.0)
-    self.world = client.load_world(params['town'])
+    self.world = client.load_world(self.town)
     print('Carla server connected!')
 
     # Set weather

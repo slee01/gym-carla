@@ -31,6 +31,9 @@ class RoundAboutEnv(CarlaEnv):
 
   def __init__(self, params):
     super(RoundAboutEnv, self).__init__(params)
+    if self.town != "Town03":
+      raise NotImplementedError
+    
     # Destination
     self.start=[62.1,-4.2, 178.66]
     self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]

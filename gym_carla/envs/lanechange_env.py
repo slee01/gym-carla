@@ -31,10 +31,13 @@ class LaneChangeEnv(CarlaEnv):
 
   def __init__(self, params):
     super(LaneChangeEnv, self).__init__(params)
+    if self.town != "Town04":
+      raise NotImplementedError
+    
     # Destination
     self.start=[-508.0,-120.0, 270.0]
-    self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
-    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=236.0, y=-61.6, z=0.0), radius=self.spawn_range) 
+    self.dests = [[-250.0, -425.5, 0], [-250.0, -429.0, 0], [-250.0, -432.5, 0], [-250.0, -436.0, 0]]
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=-508.0, y=-120.0, z=0.0), radius=self.spawn_range) 
 
     self.action_types = ["LANECHANGE", "LANEFOLLOWING"]
     self.number_of_detections = 1
