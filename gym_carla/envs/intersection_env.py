@@ -26,42 +26,21 @@ from gym_carla.envs.misc import *
 from agents.navigation.safe_agent import SafeAgent
 
 
-class RoundAboutEnv(CarlaEnv):
+class IntersectionEnv(CarlaEnv):
   """An OpenAI gym wrapper for CARLA simulator."""
 
   def __init__(self, params):
-    super(RoundAboutEnv, self).__init__(params)
+    super(IntersectionEnv, self).__init__(params)
     # parameters
     self.task_mode = params['task_mode']
     self.max_time_episode = params['max_time_episode']    
     # self.number_of_detections = params['number_of_detections']
+    self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
 
-    # Destination
-    if params['task_mode'] == 'roundabout':
-      self.dests = [[4.46, -61.46, 0], [-49.53, -2.89, 0], [-6.48, 55.47, 0], [35.96, 3.33, 0]]
-    else:
-      # self.dests = None
-      raise NotImplementedError
-
-    # action and observation spaces
-    # self.discrete = params['discrete']
-    # self.discrete_act = [params['discrete_acc'], params['discrete_steer']] # acc, steer
-    # self.n_acc = len(self.discrete_act[0])
-    # self.n_steer = len(self.discrete_act[1])
-
-    # if self.discrete:
-    #   self.action_space = spaces.Discrete(self.n_acc*self.n_steer)
-    # else:
-    #   self.action_space = spaces.Box(np.array([params['continuous_accel_range'][0], 
-    #   params['continuous_steer_range'][0]]), np.array([params['continuous_accel_range'][1],
-    #   params['continuous_steer_range'][1]]), dtype=np.float32)  # acc, steer
-    #     
     self.action_types = ["GO", "STOP"]
     self.number_of_detections = 1
     self.action_space = spaces.Discrete(len(self.action_types))
 
-    # observation_space_dict = {'state': spaces.Box(np.array([-2, -1, -5, 0]), np.array([2, 1, 30, 1]), dtype=np.float32)}
-    # self.observation_space = spaces.Dict(observation_space_dict)
     self.observation_space = spaces.Box(
       np.array([-2, -1, -5, 0, 0.0, 0.0, 0.0, 0.0]), 
       np.array([2, 1, 30, 1, 1.0, 1.0, 1.0, 1.0]), 
