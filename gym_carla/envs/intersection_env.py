@@ -37,7 +37,7 @@ class IntersectionEnv(CarlaEnv):
     # Destination
     self.start=[200.0,-62.2, 178.66]
     self.dests = [[229.0, -100.0, 0.3], [241.3, -30.0, 0]]
-    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=236.0, y=-61.6, z=0.0), radius=self.spawn_range)
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=236.0, y=-61.6, z=0.0))
 
     self.action_types = ["GO", "STOP"]
     self.number_of_detections = 1
