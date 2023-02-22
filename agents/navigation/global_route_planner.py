@@ -36,7 +36,7 @@ class GlobalRoutePlanner(object):
         self._build_topology()
         self._build_graph()
         self._find_loose_ends()
-        self._lane_change_link()
+        # self._lane_change_link()
 
     def trace_route(self, origin, destination):
         """
