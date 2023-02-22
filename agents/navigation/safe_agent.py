@@ -392,10 +392,10 @@ class SafeAgent(Agent):
         start_waypoint = self._map.get_waypoint(start_location)
         end_waypoint = self._map.get_waypoint(end_location)
 
-        print("-------------------------------------------------------------------")
-        print("vehicle id: ", self._vehicle.id, " location: ", self._vehicle.get_location())
-        print("start_waypoint: ", start_waypoint.transform.location)
-        print("end_waypoint: ", end_waypoint.transform.location)
+        # print("-------------------------------------------------------------------")
+        # print("vehicle id: ", self._vehicle.id, " location: ", self._vehicle.get_location())
+        # print("start_waypoint: ", start_waypoint.transform.location)
+        # print("end_waypoint: ", end_waypoint.transform.location)
         route_trace = self.trace_route(start_waypoint, end_waypoint)
         # print("route_trace: ", route_trace)
         self.local_planner.set_global_plan(route_trace, clean_queue=clean_queue)
@@ -586,7 +586,8 @@ class SafeAgent(Agent):
         Use 'direction' to specify either a 'left' or 'right' lane change,
         and the other 3 fine tune the maneuver
         """
-        speed = self._vehicle.get_velocity().length()
+        # speed = self._vehicle.get_velocity().length()
+        speed = get_speed(self._vehicle)
         path = self._generate_lane_change_path(
             self._map.get_waypoint(self._vehicle.get_location()),
             direction,
@@ -600,7 +601,18 @@ class SafeAgent(Agent):
         if not path:
             print("WARNING: Ignoring the lane change as no path was found")
 
-        self.set_global_plan(path)
+        # self.set_global_plan(path)
+        # print("lanechange path")
+        # print(path)
+
+        waypoints = []       
+        # waypoints_queue = list(itertools.islice(self._waypoints_queue, 0, length))
+        # waypoints_queue = list(self._waypoints_queue)
+        for point in path:
+            waypoints.append([point[0].transform.location.x, point[0].transform.location.y, point[0].transform.rotation.yaw])
+        return waypoints
+            
+        return path
 
     def _generate_lane_change_path(
         self, 
