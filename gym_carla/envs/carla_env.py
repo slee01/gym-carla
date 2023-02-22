@@ -102,7 +102,6 @@ class CarlaEnv(gym.Env):
     self.collision_sensor = None
     self._clear_all_vehicles()
     self.vehicles = []
-    
     # Delete sensors, vehicles and walkers
     # self._clear_all_actors(['sensor.other.collision', 'vehicle.*'])
     # self._clear_all_actors(['vehicle.*'])
@@ -129,14 +128,15 @@ class CarlaEnv(gym.Env):
     #     color=carla.Color(r=255, g=255,b=255), 
     #     life_time=600.0, 
     #     persistent_lines=True)
-      
+
     # Spawn the ego vehicle
     ego_spawn_times = 0
     while True:
       if ego_spawn_times > self.max_ego_spawn_times:
         self.reset()
 
-      self.start = self.start + [np.random.uniform(-5,5), 0.0, 0.0]
+      self.start[0] += np.random.uniform(-5,5)
+
       # if self.task_mode == 'roundabout':
       #   # self.start=[52.1+np.random.uniform(-5,5),-4.2, 178.66]
       #   # self.start=[62.1+np.random.uniform(-5,5),-4.2, 178.66]
@@ -158,7 +158,6 @@ class CarlaEnv(gym.Env):
       else:
         ego_spawn_times += 1
         time.sleep(0.1)
-        
     self._update_ego_vehicle_path()
 
     # Spawn surrounding vehicles
@@ -180,13 +179,13 @@ class CarlaEnv(gym.Env):
         count -= 1
 
     self._update_random_vehicle_paths()
-
+    
     # Get actors polygon list
     self.vehicle_polygons = []
     # vehicle_poly_dict = self._get_actor_polygons('vehicle.*')
     vehicle_poly_dict = self._get_vehicle_polygons()
     self.vehicle_polygons.append(vehicle_poly_dict)
-
+    
     # Add collision sensor
     self.collision_sensor = self.world.spawn_actor(self.collision_bp, carla.Transform(), attach_to=self.ego._vehicle)
     self.collision_sensor.listen(lambda event: get_collision_hist(event))
@@ -198,7 +197,6 @@ class CarlaEnv(gym.Env):
         self.collision_hist.pop(0)
         
     self.collision_hist = []
-
     # Update timesteps
     self.time_step=0
     self.reset_step+=1
@@ -219,7 +217,7 @@ class CarlaEnv(gym.Env):
     self._update_ego_vehicle_desired_speeds()
     self._set_time_to_collisions()
     # self.ego.waypoints = self.ego.cand_wpts[0]['waypoints']
-
+    
     return self._get_obs(action=0)
 
   def step(self, action):
@@ -428,6 +426,13 @@ class CarlaEnv(gym.Env):
         # vehicle.update_destination(random.choice(self.dests))
         vehicle.update_destination(end_location=carla.Location(_dest[0], _dest[1], _dest[2]))
     else:
+      # for vehicle in self.vehicles:
+      #   _wpt = self.world.get_map().get_waypoint(self.vehicle.get_location())
+      #   _dest = _wpt.next(300.0)[0]
+      #   print("_wpt: ", _wpt)
+      #   print("_dest: ", _dest)
+      #   print("_dest.transform.location: ", _dest.transform.location)
+      #   vehicle.update_destination(end_location=_dest.transform.location)
       raise NotImplementedError
   
   def _update_ego_vehicle_waypoints_and_trajectories(self):
@@ -540,5 +545,11 @@ class CarlaEnv(gym.Env):
 
   def _get_near_spawn_points(self, loc: carla.Location) -> list:
     spawn_points = list(self.world.get_map().get_spawn_points())
+
+    # for spawn_point in spawn_points:
+    #   print("-----------------------------------------------------")
+    #   print("location : ", spawn_point.location)
+    #   print("distance from ego: ", spawn_point.location.distance(loc))
+
     return [pt for pt in spawn_points if pt.location.distance(loc) < self.spawn_range]
     # return [pt for pt in self.vehicle_spawn_points if pt.location.distance(loc) < radius]
