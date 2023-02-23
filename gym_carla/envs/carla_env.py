@@ -472,7 +472,8 @@ class CarlaEnv(gym.Env):
         if collision_info[j]['dist_to_collision'] == self.pred_dist:
           time_to_collision = self.pred_time
         else:
-          time_to_collision = collision_info[j]['dist_to_collision'] / ((self.ego.desired_speeds[i] + 1e-8) / 3.6)
+          # time_to_collision = collision_info[j]['dist_to_collision'] / ((self.ego.desired_speeds[i] + 1e-8) / 3.6)
+          time_to_collision = collision_info[j]['dist_to_collision'] / (max(self.ego.desired_speeds[i], 5.0) / 3.6)
         collision_info[j]['time_to_collision'] = min(self.pred_time, time_to_collision)
 
   def _get_dist_to_collision(self, cand_traj, vehicle, buf_t = 2.0, max_time=5.0, max_dist=80.0):
