@@ -28,6 +28,7 @@ from agents.navigation.global_route_planner import GlobalRoutePlanner
 # from agents.navigation.global_route_planner_dao import GlobalRoutePlannerDAO
 from agents.tools.misc import (get_speed, is_within_distance, get_trafficlight_trigger_location, compute_distance, positive)
 
+GO_SPEED_LIMIT, STOP_SPEED_LIMIT = 10.0, 5.0
 
 class SafeAgent(Agent):
     """
@@ -210,7 +211,8 @@ class SafeAgent(Agent):
         self.cand_trajs = []
         location = self._vehicle.get_location()
         traj_length = int(max_t / self._dt)
-        speed = get_speed(self._vehicle) / 3.6  # TODO: replace current speed with target speed
+        # speed = get_speed(self._vehicle) / 3.6  # Use desired speeds when we calculate time_to_collisions
+        speed = max(get_speed(self._vehicle)/3.6, 5.0/3.6)
         traj_gap = speed * self._dt
 
         for candidate in self.cand_wpts:
@@ -268,7 +270,8 @@ class SafeAgent(Agent):
 
         self.pred_trajs = []
         location = self._vehicle.get_location()
-        speed = get_speed(self._vehicle) / 3.6
+        # speed = get_speed(self._vehicle) / 3.6
+        speed = max(get_speed(self._vehicle)/3.6, 5.0/3.6)
         traj_gap = speed * self._dt
         traj_length = int(max_t / self._dt)
 
@@ -907,8 +910,7 @@ class SafeAgent(Agent):
         else:
             # print("else: (Normal Behavior)")
             target_speed = min([self._behavior.max_speed, _ego_speed_limit - self._behavior.speed_lim_dist])        
-
-        GO_SPEED_LIMIT, STOP_SPEED_LIMIT = 10.0, 5.0
+        
         if waypoint_type == "GO" and target_speed < GO_SPEED_LIMIT:
             target_speed = GO_SPEED_LIMIT
         elif waypoint_type == "STOP" and target_speed > STOP_SPEED_LIMIT:
