@@ -35,10 +35,14 @@ class LaneChangeEnv(CarlaEnv):
       raise NotImplementedError
     
     # Destination
-    self.start=[-508.0,-120.0, 270.0]
-    self.dests = [[-250.0, -425.5, 0], [-250.0, -429.0, 0], [-250.0, -432.5, 0], [-250.0, -436.0, 0]]
-    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=-508.0, y=-120.0, z=0.0), radius=self.spawn_range) 
+    # self.start=[-508.0,-120.0, 270.0]
+    # self.dests = [[-250.0, -425.5, 0], [-250.0, -429.0, 0], [-250.0, -432.5, 0], [-250.0, -436.0, 0]]
+    self.start=[405.0, 120.0, 90.0]
+    self.dests = [[250.0, 395.5, 0], [250.0, 392.0, 0], [250.0, 388.5, 0], [250.0, 385.0, 0]]
 
+    # spawn_points = list(self.world.get_map().get_spawn_points())
+    self.vehicle_spawn_points = self._get_near_spawn_points(loc=carla.Location(x=405.0, y=120.0, z=0.0)) 
+    print("spawn_points: ", self.vehicle_spawn_points)
     self.action_types = ["LANECHANGE", "LANEFOLLOWING"]
     self.number_of_detections = 1
     self.action_space = spaces.Discrete(len(self.action_types))
@@ -93,6 +97,8 @@ class LaneChangeEnv(CarlaEnv):
     # r_speed = min(1.0, speed / self.desired_speed)
     r_speed = min(1.0, speed / self.ego._behavior.max_speed)
     
+    # TODO: USE self.ego.desired_speeds to design reward (desired_speed of following vs. current_speed of changing)
+
     # reward for collision
     r_collision = 0
     if len(self.collision_hist) > 0 or self.collision_infos[action][0]['time_to_collision'] <= 1.0:
